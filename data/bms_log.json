@@ -1,0 +1,324 @@
+[
+  {
+    "time": "2026-04-24T07:28:45.107Z",
+    "station_id": "BMOS_STATION_01",
+    "battery_volt": "11.4",
+    "temperature": "40.1",
+    "status": "Charging"
+  },
+  {
+    "time": "2026-04-24T07:28:47.106Z",
+    "station_id": "BMOS_STATION_01",
+    "battery_volt": "12.8",
+    "temperature": "44.8",
+    "status": "Charging"
+  },
+  {
+    "time": "2026-04-24T07:28:49.114Z",
+    "station_id": "BMOS_STATION_01",
+    "battery_volt": "10.8",
+    "temperature": "33.9",
+    "status": "Charging"
+  },
+  {
+    "time": "2026-04-24T07:28:51.118Z",
+    "station_id": "BMOS_STATION_01",
+    "battery_volt": "13.2",
+    "temperature": "31.1",
+    "status": "Charging"
+  },
+  {
+    "time": "2026-04-24T07:28:53.124Z",
+    "station_id": "BMOS_STATION_01",
+    "battery_volt": "13.7",
+    "temperature": "33.7",
+    "status": "Charging"
+  },
+  {
+    "time": "2026-04-24T07:28:55.128Z",
+    "station_id": "BMOS_STATION_01",
+    "battery_volt": "13.1",
+    "temperature": "44.8",
+    "status": "Charging"
+  },
+  {
+    "time": "2026-04-24T07:28:57.138Z",
+    "station_id": "BMOS_STATION_01",
+    "battery_volt": "13.5",
+    "temperature": "40.2",
+    "status": "Charging"
+  },
+  {
+    "time": "2026-04-24T07:28:59.151Z",
+    "station_id": "BMOS_STATION_01",
+    "battery_volt": "12.9",
+    "temperature": "33.8",
+    "status": "Charging"
+  },
+  {
+    "time": "2026-04-24T07:29:01.158Z",
+    "station_id": "BMOS_STATION_01",
+    "battery_volt": "13.0",
+    "temperature": "44.5",
+    "status": "Charging"
+  },
+  {
+    "time": "2026-04-24T07:29:03.172Z",
+    "station_id": "BMOS_STATION_01",
+    "battery_volt": "11.6",
+    "temperature": "30.9",
+    "status": "Charging"
+  },
+  {
+    "time": "2026-04-24T07:29:05.181Z",
+    "station_id": "BMOS_STATION_01",
+    "battery_volt": "13.3",
+    "temperature": "42.6",
+    "status": "Charging"
+  },
+  {
+    "time": "2026-04-24T07:29:07.178Z",
+    "station_id": "BMOS_STATION_01",
+    "battery_volt": "12.8",
+    "temperature": "41.5",
+    "status": "Charging"
+  },
+  {
+    "time": "2026-04-24T07:29:09.189Z",
+    "station_id": "BMOS_STATION_01",
+    "battery_volt": "10.6",
+    "temperature": "41.9",
+    "status": "Charging"
+  },
+  {
+    "time": "2026-04-24T07:29:11.190Z",
+    "station_id": "BMOS_STATION_01",
+    "battery_volt": "13.8",
+    "temperature": "40.5",
+    "status": "Charging"
+  },
+  {
+    "time": "2026-04-24T07:29:13.197Z",
+    "station_id": "BMOS_STATION_01",
+    "battery_volt": "13.4",
+    "temperature": "36.6",
+    "status": "Charging"
+  },
+  {
+    "time": "2026-04-24T07:29:15.206Z",
+    "station_id": "BMOS_STATION_01",
+    "battery_volt": "10.6",
+    "temperature": "36.4",
+    "status": "Charging"
+  },
+  {
+    "time": "2026-04-24T07:29:17.208Z",
+    "station_id": "BMOS_STATION_01",
+    "battery_volt": "12.6",
+    "temperature": "38.8",
+    "status": "Charging"
+  },
+  {
+    "time": "2026-04-24T07:29:19.222Z",
+    "station_id": "BMOS_STATION_01",
+    "battery_volt": "13.4",
+    "temperature": "31.6",
+    "status": "Charging"
+  },
+  {
+    "time": "2026-04-24T07:29:21.229Z",
+    "station_id": "BMOS_STATION_01",
+    "battery_volt": "11.2",
+    "temperature": "39.2",
+    "status": "Charging"
+  },
+  {
+    "time": "2026-04-24T07:29:23.230Z",
+    "station_id": "BMOS_STATION_01",
+    "battery_volt": "13.6",
+    "temperature": "32.2",
+    "status": "Charging"
+  },
+  {
+    "time": "2026-04-24T07:29:25.231Z",
+    "station_id": "BMOS_STATION_01",
+    "battery_volt": "11.6",
+    "temperature": "39.1",
+    "status": "Charging"
+  },
+  {
+    "time": "2026-04-24T07:29:27.237Z",
+    "station_id": "BMOS_STATION_01",
+    "battery_volt": "10.8",
+    "temperature": "31.8",
+    "status": "Charging"
+  },
+  {
+    "time": "2026-04-24T07:29:29.249Z",
+    "station_id": "BMOS_STATION_01",
+    "battery_volt": "11.2",
+    "temperature": "31.2",
+    "status": "Charging"
+  },
+  {
+    "time": "2026-04-24T07:29:31.247Z",
+    "station_id": "BMOS_STATION_01",
+    "battery_volt": "11.5",
+    "temperature": "44.0",
+    "status": "Charging"
+  },
+  {
+    "time": "2026-04-24T07:29:33.252Z",
+    "station_id": "BMOS_STATION_01",
+    "battery_volt": "12.7",
+    "temperature": "44.9",
+    "status": "Charging"
+  },
+  {
+    "time": "2026-04-24T07:29:35.265Z",
+    "station_id": "BMOS_STATION_01",
+    "battery_volt": "12.2",
+    "temperature": "32.0",
+    "status": "Charging"
+  },
+  {
+    "time": "2026-04-24T07:29:37.282Z",
+    "station_id": "BMOS_STATION_01",
+    "battery_volt": "10.0",
+    "temperature": "41.6",
+    "status": "Charging"
+  },
+  {
+    "time": "2026-04-24T07:29:39.289Z",
+    "station_id": "BMOS_STATION_01",
+    "battery_volt": "11.6",
+    "temperature": "41.5",
+    "status": "Charging"
+  },
+  {
+    "time": "2026-04-24T07:29:41.306Z",
+    "station_id": "BMOS_STATION_01",
+    "battery_volt": "12.3",
+    "temperature": "42.6",
+    "status": "Charging"
+  },
+  {
+    "time": "2026-04-24T07:29:43.305Z",
+    "station_id": "BMOS_STATION_01",
+    "battery_volt": "11.9",
+    "temperature": "42.1",
+    "status": "Charging"
+  },
+  {
+    "time": "2026-04-24T07:29:45.318Z",
+    "station_id": "BMOS_STATION_01",
+    "battery_volt": "12.4",
+    "temperature": "34.7",
+    "status": "Charging"
+  },
+  {
+    "time": "2026-04-24T07:29:47.325Z",
+    "station_id": "BMOS_STATION_01",
+    "battery_volt": "10.8",
+    "temperature": "32.1",
+    "status": "Charging"
+  },
+  {
+    "time": "2026-04-24T07:29:49.335Z",
+    "station_id": "BMOS_STATION_01",
+    "battery_volt": "11.9",
+    "temperature": "37.6",
+    "status": "Charging"
+  },
+  {
+    "time": "2026-04-24T07:29:51.341Z",
+    "station_id": "BMOS_STATION_01",
+    "battery_volt": "10.2",
+    "temperature": "30.3",
+    "status": "Charging"
+  },
+  {
+    "time": "2026-04-24T07:29:53.349Z",
+    "station_id": "BMOS_STATION_01",
+    "battery_volt": "11.9",
+    "temperature": "38.9",
+    "status": "Charging"
+  },
+  {
+    "time": "2026-04-24T07:29:55.356Z",
+    "station_id": "BMOS_STATION_01",
+    "battery_volt": "12.9",
+    "temperature": "32.7",
+    "status": "Charging"
+  },
+  {
+    "time": "2026-04-24T07:29:57.356Z",
+    "station_id": "BMOS_STATION_01",
+    "battery_volt": "13.5",
+    "temperature": "36.7",
+    "status": "Charging"
+  },
+  {
+    "time": "2026-04-24T07:29:59.358Z",
+    "station_id": "BMOS_STATION_01",
+    "battery_volt": "13.1",
+    "temperature": "34.2",
+    "status": "Charging"
+  },
+  {
+    "time": "2026-04-24T07:30:01.368Z",
+    "station_id": "BMOS_STATION_01",
+    "battery_volt": "13.4",
+    "temperature": "39.4",
+    "status": "Charging"
+  },
+  {
+    "time": "2026-04-24T07:30:03.378Z",
+    "station_id": "BMOS_STATION_01",
+    "battery_volt": "10.2",
+    "temperature": "40.9",
+    "status": "Charging"
+  },
+  {
+    "time": "2026-04-24T07:30:05.391Z",
+    "station_id": "BMOS_STATION_01",
+    "battery_volt": "10.5",
+    "temperature": "32.9",
+    "status": "Charging"
+  },
+  {
+    "time": "2026-04-24T07:30:07.401Z",
+    "station_id": "BMOS_STATION_01",
+    "battery_volt": "13.2",
+    "temperature": "36.1",
+    "status": "Charging"
+  },
+  {
+    "time": "2026-04-24T07:30:09.410Z",
+    "station_id": "BMOS_STATION_01",
+    "battery_volt": "10.4",
+    "temperature": "41.6",
+    "status": "Charging"
+  },
+  {
+    "time": "2026-04-24T07:30:11.424Z",
+    "station_id": "BMOS_STATION_01",
+    "battery_volt": "11.0",
+    "temperature": "30.0",
+    "status": "Charging"
+  },
+  {
+    "time": "2026-04-24T07:30:13.436Z",
+    "station_id": "BMOS_STATION_01",
+    "battery_volt": "11.3",
+    "temperature": "41.2",
+    "status": "Charging"
+  },
+  {
+    "time": "2026-04-24T07:30:15.450Z",
+    "station_id": "BMOS_STATION_01",
+    "battery_volt": "13.6",
+    "temperature": "36.1",
+    "status": "Charging"
+  }
+]

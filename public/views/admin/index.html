@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <title>BMOS Admin - Trang chủ</title>
+    <link rel="stylesheet" href="/assets/css/admin.css" />
+  </head>
+  <body class="dashboard-page">
+    <div class="header">
+      <div class="header-left">
+        <h2>QUẢN TRỊ HỆ THỐNG BMOS</h2>
+        <small class="user-info"
+          >Xin chào, <span id="admin-name">Loading...</span></small
+        >
+      </div>
+      <div class="header-right">
+        <!-- Đồng hồ Server  -->
+        <div class="clock" id="server-clock">--:--:-- --/--/----</div>
+
+        <button class="btn btn-logout" onclick="handleLogout()">
+          Đăng xuất
+        </button>
+      </div>
+    </div>
+
+    <div class="container" id="form-container">
+      <div class="form-header">
+        <h3 id="form-title">Thêm Tài Khoản Mới</h3>
+        <button
+          class="btn btn-cancel"
+          id="btn-cancel"
+          onclick="resetForm()"
+          style="display: none"
+        >
+          Hủy bỏ
+        </button>
+      </div>
+
+      <input type="hidden" id="edit-id" />
+
+      <div class="form-row">
+        <div class="form-field">
+          <label>Tên đăng nhập *</label>
+          <input type="text" id="new-user" placeholder="Nhập tên đăng nhập" />
+        </div>
+        <div class="form-field">
+          <label>Mật khẩu *</label>
+          <input type="password" id="new-pass" placeholder="Nhập mật khẩu" />
+        </div>
+        <div class="form-field">
+          <label>Họ và tên</label>
+          <input type="text" id="new-name" placeholder="Nhập họ và tên" />
+        </div>
+        <div class="form-field">
+          <label>Vai trò *</label>
+          <select id="role-select">
+            <option value="monitor2" disabled selected>Chọn vai trò</option>
+            <option value="admin1">Admin 1</option>
+            <option value="admin2">Admin 2</option>
+            <option value="monitor1">Monitor 1</option>
+            <option value="monitor2">Monitor 2</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-field">
+          <label>Mô tả</label>
+          <input type="text" id="new-desc" placeholder="Nhập mô tả chung" />
+        </div>
+        <div class="form-field">
+          <label>Địa chỉ</label>
+          <input type="text" id="new-addr" placeholder="Nhập địa chỉ liên hệ" />
+        </div>
+        <div class="form-field">
+          <label>Số điện thoại</label>
+          <input type="text" id="new-phone" placeholder="Nhập số điện thoại" />
+        </div>
+        <div class="form-field">
+          <label>Email</label>
+          <input type="email" id="new-mail" placeholder="Nhập email" />
+        </div>
+      </div>
+
+      <button class="btn btn-add" id="btn-save" onclick="handleSaveUser()">
+        THÊM TÀI KHOẢN
+      </button>
+    </div>
+
+    <div class="container">
+      <h3>Danh Sách Tài Khoản</h3>
+      <table id="user-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>TÀI KHOẢN</th>
+            <th>HỌ VÀ TÊN</th>
+            <th>VAI TRÒ</th>
+            <th>MÔ TẢ</th>
+            <th>ĐỊA CHỈ</th>
+            <th>SỐ ĐIỆN THOẠI</th>
+            <th>EMAIL</th>
+            <th>HÀNH ĐỘNG</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <!-- Modal Notification -->
+    <div id="modal-overlay" class="modal-overlay">
+      <div class="modal-box">
+        <div class="modal-icon" id="modal-icon"></div>
+        <div class="modal-message" id="modal-message"></div>
+        <div class="modal-buttons" id="modal-buttons"></div>
+      </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="/assets/js/admin.js"></script>
+  </body>
+</html>

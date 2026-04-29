@@ -1,0 +1,35 @@
+[
+  {
+    "id": "bmos000000001",
+    "username": "admin",
+    "password": "admin",
+    "fullname": "Super Administrator",
+    "role": "admin",
+    "description": "Đây là tài khoản admin gốc",
+    "address": "Server BMOS",
+    "phone": "",
+    "mail": ""
+  },
+  {
+    "username": "admin1",
+    "password": "admin1",
+    "fullname": "Admin1",
+    "role": "admin1",
+    "description": "",
+    "address": "",
+    "phone": "",
+    "mail": "",
+    "id": "bmos747717864"
+  },
+  {
+    "username": "admin2",
+    "password": "admin2",
+    "fullname": "Admin2",
+    "role": "admin2",
+    "description": "",
+    "address": "",
+    "phone": "",
+    "mail": "",
+    "id": "bmos502460308"
+  }
+]

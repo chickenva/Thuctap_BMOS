@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Đăng nhập</title>
+    <link rel="stylesheet" href="/assets/css/admin.css" />
+  </head>
+  <body class="login-page">
+    <div class="login-box">
+      <h1 id="page-title">ĐĂNG NHẬP HỆ THỐNG</h1>
+      <p class="subtitle" id="role-info"></p>
+      <input type="text" id="username" placeholder="Tên đăng nhập" />
+      <input type="password" id="password" placeholder="Mật khẩu" />
+      <button class="btn btn-login" onclick="handleLogin()">ĐĂNG NHẬP</button>
+      <p id="error-msg" class="error-msg"></p>
+    </div>
+
+    <script>
+      const port = window.location.port;
+      const titleEl = document.getElementById("page-title");
+      const roleEl = document.getElementById("role-info");
+
+      if (port === "1111") {
+        titleEl.style.color = "#3498db";
+        roleEl.innerText = "QUẢN TRỊ VIÊN";
+      } else if (port === "3333") {
+        titleEl.style.color = "#00d2d3";
+        roleEl.innerText = "GIÁM SÁT VIÊN";
+      } else {
+        titleEl.innerText = "BMOS SYSTEM";
+      }
+
+      async function handleLogin() {
+        const user = document.getElementById("username").value;
+        const pass = document.getElementById("password").value;
+        const errorMsg = document.getElementById("error-msg");
+
+        if (!user || !pass) {
+          errorMsg.innerText = "⚠️ Vui lòng nhập đầy đủ thông tin!";
+          errorMsg.style.display = "block";
+          return;
+        }
+
+        try {
+          const res = await fetch("/api/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ user, pass }),
+          });
+          const rs = await res.json();
+
+          if (rs.success) {
+            sessionStorage.setItem("bmos_role", rs.role);
+            sessionStorage.setItem("bmos_name", rs.fullname);
+            if (navigator.userAgent.indexOf("Electron") >= 0) {
+              // Nếu phát hiện đang chạy trên App Desktop (.exe)
+              window.location.href = "/desktop";
+            } else {
+              // Nếu đang chạy trên web bình thường (Chrome, Edge...)
+              window.location.href = "/";
+            }
+          } else {
+            errorMsg.innerText =
+              rs.msg || "❌ Sai tên đăng nhập hoặc mật khẩu!";
+            errorMsg.style.display = "block";
+          }
+        } catch (err) {
+          console.error(err);
+          errorMsg.innerText = "❌ Lỗi kết nối Server!";
+          errorMsg.style.display = "block";
+        }
+      }
+
+      // Hỗ trợ nhấn Enter
+      document.addEventListener("keypress", function (e) {
+        if (e.key === "Enter") handleLogin();
+      });
+    </script>
+  </body>
+</html>

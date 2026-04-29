@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <title>BMOS Admin - Desktop App</title>
+    <link rel="stylesheet" href="/assets/css/admin.css" />
+
+    <style></style>
+  </head>
+  <body class="dashboard-page">
+    <div class="header">
+      <div class="header-left">
+        <h2>QUẢN TRỊ HỆ THỐNG BMOS</h2>
+        <small class="user-info"
+          >Xin chào, <span id="admin-name">Loading...</span></small
+        >
+      </div>
+      <div class="header-right">
+        <div class="clock" id="server-clock">--:--:-- --/--/----</div>
+        <button class="btn btn-logout" onclick="handleLogout()">
+          Đăng xuất
+        </button>
+      </div>
+    </div>
+
+    <div class="desktop-tabs">
+      <button
+        class="desktop-tab-btn active"
+        id="btn-tab-list"
+        onclick="switchDesktopTab('tab-list')"
+      >
+        Danh Sách Tài Khoản
+      </button>
+      <button
+        class="desktop-tab-btn"
+        id="btn-tab-add"
+        onclick="switchDesktopTab('tab-add')"
+      >
+        Thêm / Sửa Tài Khoản
+      </button>
+      <button
+        class="desktop-tab-btn"
+        id="btn-tab-monitor"
+        onclick="switchDesktopTab('tab-monitor')"
+      >
+        Giám Sát Real-time
+      </button>
+      <button
+        class="desktop-tab-btn"
+        id="btn-tab-control"
+        onclick="switchDesktopTab('tab-control')"
+      >
+        Điều Khiển & Test
+      </button>
+    </div>
+
+    <div id="tab-list" class="tab-content active">
+      <div class="container">
+        <h3>Danh Sách Tài Khoản</h3>
+        <table id="user-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>TÀI KHOẢN</th>
+              <th>HỌ VÀ TÊN</th>
+              <th>VAI TRÒ</th>
+              <th>MÔ TẢ</th>
+              <th>ĐỊA CHỈ</th>
+              <th>SỐ ĐIỆN THOẠI</th>
+              <th>EMAIL</th>
+              <th>HÀNH ĐỘNG</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="tab-add" class="tab-content">
+      <div class="container" id="form-container">
+        <div class="form-header">
+          <h3 id="form-title">Thêm Tài Khoản Mới</h3>
+          <button
+            class="btn btn-cancel"
+            id="btn-cancel"
+            onclick="resetForm()"
+            style="display: none"
+          >
+            Hủy bỏ
+          </button>
+        </div>
+
+        <input type="hidden" id="edit-id" />
+
+        <div class="form-row">
+          <div class="form-field">
+            <label>Tên đăng nhập *</label>
+            <input type="text" id="new-user" placeholder="Nhập tên đăng nhập" />
+          </div>
+          <div class="form-field">
+            <label>Mật khẩu *</label>
+            <input type="password" id="new-pass" placeholder="Nhập mật khẩu" />
+          </div>
+          <div class="form-field">
+            <label>Họ và tên</label>
+            <input type="text" id="new-name" placeholder="Nhập họ và tên" />
+          </div>
+          <div class="form-field">
+            <label>Vai trò *</label>
+            <select id="role-select">
+              <option value="monitor2" disabled selected>Chọn vai trò</option>
+              <option value="admin1">Admin 1</option>
+              <option value="admin2">Admin 2</option>
+              <option value="monitor1">Monitor 1</option>
+              <option value="monitor2">Monitor 2</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-field">
+            <label>Mô tả</label>
+            <input type="text" id="new-desc" placeholder="Nhập mô tả chung" />
+          </div>
+          <div class="form-field">
+            <label>Địa chỉ</label>
+            <input
+              type="text"
+              id="new-addr"
+              placeholder="Nhập địa chỉ liên hệ"
+            />
+          </div>
+          <div class="form-field">
+            <label>Số điện thoại</label>
+            <input
+              type="text"
+              id="new-phone"
+              placeholder="Nhập số điện thoại"
+            />
+          </div>
+          <div class="form-field">
+            <label>Email</label>
+            <input type="email" id="new-mail" placeholder="Nhập email" />
+          </div>
+        </div>
+
+        <button class="btn btn-add" id="btn-save" onclick="handleSaveUser()">
+          THÊM TÀI KHOẢN
+        </button>
+      </div>
+    </div>
+
+    <div id="tab-monitor" class="tab-content">
+      <div
+        class="container"
+        style="
+          max-width: 1200px;
+          margin: 20px auto;
+          font-family: Arial, sans-serif;
+        "
+      >
+        <h2
+          style="
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+          "
+        >
+          ⚡ Giám Sát Trạm Pin BMS4CAR (Real-time)
+        </h2>
+
+        <table
+          style="
+            width: 100%;
+            border-collapse: collapse;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            background: white;
+          "
+        >
+          <thead>
+            <tr
+              style="
+                background-color: #34495e;
+                color: white;
+                text-align: center;
+                font-size: 14px;
+              "
+            >
+              <th style="padding: 10px; border: 1px solid #ddd">THỜI GIAN</th>
+              <th style="padding: 10px; border: 1px solid #ddd">CELL PIN</th>
+              <th style="padding: 10px; border: 1px solid #ddd">ĐIỆN ÁP (V)</th>
+              <th style="padding: 10px; border: 1px solid #ddd">
+                NỘI TRỞ (mΩ)
+              </th>
+              <th style="padding: 10px; border: 1px solid #ddd">
+                NHIỆT ĐỘ (°C)
+              </th>
+              <th style="padding: 10px; border: 1px solid #ddd">BY-PASS</th>
+              <th style="padding: 10px; border: 1px solid #ddd">CẢNH BÁO</th>
+            </tr>
+          </thead>
+          <tbody id="monitor-tbody" style="text-align: center"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="tab-control" class="tab-content">
+      <div class="container" style="max-width: 900px; margin: 20px auto">
+        <h2
+          style="
+            color: #2c3e50;
+            border-bottom: 2px solid #e67e22;
+            padding-bottom: 10px;
+          "
+        >
+          Bảng Điều Khiển & Gửi Lệnh Xuống Phần Cứng
+        </h2>
+
+        <div
+          style="
+            background: #fdfefe;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+          "
+        >
+          <span style="font-size: 16px; font-weight: bold"
+            >Trạng thái LED/Relay:</span
+          >
+
+          <span style="color: #7f8c8d; font-weight: bold">TẮT</span>
+
+          <label class="bmos-custom-switch">
+            <input
+              type="checkbox"
+              id="ledSwitch"
+              onchange="dieuKhienDen(this.checked)"
+            />
+            <span class="bmos-custom-slider"></span>
+          </label>
+
+          <span style="color: #2ecc71; font-weight: bold">BẬT</span>
+        </div>
+
+        <div style="margin-top: 25px">
+          <h4 style="margin-bottom: 10px; color: #34495e">
+            Lịch sử gửi lệnh (Console Log):
+          </h4>
+          <div
+            id="control-log"
+            style="
+              background: #1e1e1e;
+              color: #00ff00;
+              font-family: &quot;Courier New&quot;, Courier, monospace;
+              padding: 15px;
+              border-radius: 8px;
+              height: 350px;
+              overflow-y: auto;
+              white-space: pre-wrap;
+              font-size: 14px;
+            "
+          >
+            > Hệ thống Điều khiển BMS4CAR đã sẵn sàng...
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="modal-overlay" class="modal-overlay">
+      <div class="modal-box">
+        <div class="modal-icon" id="modal-icon"></div>
+        <div class="modal-message" id="modal-message"></div>
+        <div class="modal-buttons" id="modal-buttons"></div>
+      </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="/assets/js/admin.js"></script>
+  </body>
+</html>

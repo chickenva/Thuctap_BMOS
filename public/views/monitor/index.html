@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <title>BMOS Monitor - Trang chủ</title>
+    <link rel="stylesheet" href="/assets/css/monitor.css" />
+  </head>
+  <body class="dashboard-page">
+    <div class="header">
+      <div class="header-left">
+        <h2>HỆ THỐNG GIÁM SÁT PIN BMOS</h2>
+        <div class="user-info">Xin chào, <span id="u-name">...</span></div>
+      </div>
+      <div class="header-right">
+        <!-- Đồng hồ Server  -->
+        <div class="clock" id="server-clock">--:--:-- --/--/----</div>
+        <button class="btn btn-logout" onclick="handleLogout()">
+          Đăng xuất
+        </button>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('tab-monitor')">
+        Giám Sát Pin
+      </button>
+      <button
+        class="tab-btn"
+        id="btn-tab-users"
+        onclick="switchTab('tab-users')"
+      >
+        Quản Lý Tài Khoản
+      </button>
+    </div>
+
+    <div id="tab-monitor" class="tab-content active">
+      <div class="status-card">
+        <div class="status-info">
+          <h3>📡 Trạng thái kết nối</h3>
+          <p>
+            <span id="status-dot" style="color: #e74c3c; font-size: 1.2em"
+              >● Disconnected</span
+            >
+          </p>
+          <p class="last-update">
+            Cập nhật lần cuối: <span id="last-update">Chờ dữ liệu...</span>
+          </p>
+        </div>
+      </div>
+
+      <div class="data-grid">
+        <div class="card metric-card">
+          <div class="metric-icon">⚡</div>
+          <div class="label">VOLTAGE (DIỆN ÁP)</div>
+          <div class="value">
+            <span id="val-vol">--</span> <span class="unit">V</span>
+          </div>
+        </div>
+        <div class="card metric-card">
+          <div class="metric-icon">🌡️</div>
+          <div class="label">TEMPERATURE (NHIỆT ĐỘ)</div>
+          <div class="value">
+            <span id="val-temp">--</span> <span class="unit">°C</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card log-card">
+        <h3>📊 Dữ liệu thô (Raw Data)</h3>
+        <div id="raw-log" class="raw-log">Chờ dữ liệu từ hệ thống...</div>
+      </div>
+    </div>
+
+    <div id="tab-users" class="tab-content">
+      <div class="card">
+        <div class="form-header">
+          <h3 id="form-title">Thêm Tài Khoản Mới</h3>
+          <button
+            class="btn btn-cancel"
+            id="btn-cancel"
+            onclick="resetForm()"
+            style="display: none"
+          >
+            Hủy bỏ
+          </button>
+        </div>
+
+        <input type="hidden" id="edit-id" />
+
+        <div class="form-row">
+          <div class="form-field">
+            <label>Tên đăng nhập *</label>
+            <input type="text" id="new-user" placeholder="Nhập tên đăng nhập" />
+          </div>
+          <div class="form-field">
+            <label>Mật khẩu *</label>
+            <input type="password" id="new-pass" placeholder="Nhập mật khẩu" />
+          </div>
+          <div class="form-field">
+            <label>Họ và tên</label>
+            <input type="text" id="new-name" placeholder="Nhập họ và tên" />
+          </div>
+          <div class="form-field">
+            <label>Vai trò *</label>
+            <select id="new-role">
+              <option value="monitor2" disabled selected>Chọn vai trò</option>
+              <option value="monitor1">Monitor 1</option>
+              <option value="monitor2">Monitor 2</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-field">
+            <label>Mô tả</label>
+            <input type="text" id="new-desc" placeholder="Nhập mô tả chung" />
+          </div>
+          <div class="form-field">
+            <label>Địa chỉ</label>
+            <input
+              type="text"
+              id="new-addr"
+              placeholder="Nhập địa chỉ liên hệ"
+            />
+          </div>
+          <div class="form-field">
+            <label>Số điện thoại</label>
+            <input
+              type="text"
+              id="new-phone"
+              placeholder="Nhập số điện thoại"
+            />
+          </div>
+          <div class="form-field">
+            <label>Email</label>
+            <input type="email" id="new-mail" placeholder="Nhập email" />
+          </div>
+        </div>
+
+        <button class="btn btn-add" id="btn-save" onclick="handleSaveUser()">
+          THÊM MỚI
+        </button>
+
+        <h3 style="margin-top: 30px">Danh Sách Tài Khoản</h3>
+        <table id="user-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>TÀI KHOẢN</th>
+              <th>HỌ VÀ TÊN</th>
+              <th>VAI TRÒ</th>
+              <th>MÔ TẢ</th>
+              <th>SỐ ĐIỆN THOẠI</th>
+              <th>HÀNH ĐỘNG</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Modal Notification -->
+    <div id="modal-overlay" class="modal-overlay">
+      <div class="modal-box">
+        <div class="modal-icon" id="modal-icon"></div>
+        <div class="modal-message" id="modal-message"></div>
+        <div class="modal-buttons" id="modal-buttons"></div>
+      </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="/assets/js/monitor.js"></script>
+  </body>
+</html>

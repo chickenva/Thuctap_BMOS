@@ -1,0 +1,24 @@
+[
+  {
+    "username": "monitor1",
+    "password": "monitor1",
+    "fullname": "Monitor1",
+    "role": "monitor1",
+    "description": "",
+    "address": "",
+    "phone": "",
+    "mail": "",
+    "id": "bmos348147917"
+  },
+  {
+    "username": "monitor2",
+    "password": "monitor2",
+    "fullname": "Monitor2",
+    "role": "monitor2",
+    "description": "",
+    "address": "",
+    "phone": "",
+    "mail": "",
+    "id": "bmos823316338"
+  }
+]
