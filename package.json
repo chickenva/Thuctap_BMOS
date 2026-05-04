@@ -4,8 +4,8 @@
   "main": "main.js",
   "bin": "server.js",
   "scripts": {
-    "start": "electron .",
-    "dev": "nodemon --watch server.js --watch main.js --exec electron .",
+    "start": "chcp 65001 && electron .",
+    "dev": "chcp 65001 && nodemon --watch server.js --watch main.js --exec electron .",
     "build": "electron-builder --win --x64"
   },
   "build": {

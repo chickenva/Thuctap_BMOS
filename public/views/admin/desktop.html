@@ -154,7 +154,7 @@
       <div
         class="container"
         style="
-          max-width: 1200px;
+          max-width: 1400px;
           margin: 20px auto;
           font-family: Arial, sans-serif;
         "
@@ -166,7 +166,7 @@
             padding-bottom: 10px;
           "
         >
-          ⚡ Giám Sát Trạm Pin BMS4CAR (Real-time)
+          ⚡ Giám Sát Trạm Pin BMS4CAR (Trạng Thái 16 Cell)
         </h2>
 
         <table
@@ -175,6 +175,7 @@
             border-collapse: collapse;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             background: white;
+            font-size: 13px;
           "
         >
           <thead>
@@ -183,23 +184,47 @@
                 background-color: #34495e;
                 color: white;
                 text-align: center;
-                font-size: 14px;
               "
             >
-              <th style="padding: 10px; border: 1px solid #ddd">THỜI GIAN</th>
-              <th style="padding: 10px; border: 1px solid #ddd">CELL PIN</th>
-              <th style="padding: 10px; border: 1px solid #ddd">ĐIỆN ÁP (V)</th>
-              <th style="padding: 10px; border: 1px solid #ddd">
-                NỘI TRỞ (mΩ)
+              <th style="padding: 12px 5px; border: 1px solid #ddd">
+                THỜI GIAN
               </th>
-              <th style="padding: 10px; border: 1px solid #ddd">
+              <th style="padding: 12px 5px; border: 1px solid #ddd">
+                CELL PIN
+              </th>
+              <th style="padding: 12px 5px; border: 1px solid #ddd">
+                ĐIỆN ÁP (V)
+              </th>
+              <th style="padding: 12px 5px; border: 1px solid #ddd">
+                DÒNG ĐIỆN (A)
+              </th>
+              <th style="padding: 12px 5px; border: 1px solid #ddd">
                 NHIỆT ĐỘ (°C)
               </th>
-              <th style="padding: 10px; border: 1px solid #ddd">BY-PASS</th>
-              <th style="padding: 10px; border: 1px solid #ddd">CẢNH BÁO</th>
+              <th style="padding: 12px 5px; border: 1px solid #ddd">
+                NỘI TRỞ (mΩ)
+              </th>
+              <th style="padding: 12px 5px; border: 1px solid #ddd">
+                ĐIỆN TRỞ TX (mΩ)
+              </th>
+              <th style="padding: 12px 5px; border: 1px solid #ddd">BY-PASS</th>
+              <th style="padding: 12px 5px; border: 1px solid #ddd">
+                CB CHỦ ĐỘNG
+              </th>
+              <th style="padding: 12px 5px; border: 1px solid #ddd">
+                CB THỤ ĐỘNG
+              </th>
+              <th style="padding: 12px 5px; border: 1px solid #ddd">CB TĨNH</th>
+              <th style="padding: 12px 5px; border: 1px solid #ddd">
+                CB ĐIỆN ÁP
+              </th>
             </tr>
           </thead>
-          <tbody id="monitor-tbody" style="text-align: center"></tbody>
+          <!-- Body này sẽ được JS tự động tạo ra 16 dòng -->
+          <tbody
+            id="monitor-tbody"
+            style="text-align: center; font-weight: 500"
+          ></tbody>
         </table>
       </div>
     </div>

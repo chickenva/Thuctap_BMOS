@@ -308,42 +308,6 @@ async function switchDesktopTab(tabId) {
   }
 }
 
-// Lắng nghe sự kiện phần cứng đẩy lên từ Port 2222
-socket.on("hardware-update", (data) => {
-  const tbody = document.getElementById("monitor-tbody");
-  if (!tbody) {
-    console.log(
-      "❌ Lỗi: Không tìm thấy thẻ <tbody id='monitor-tbody'> trên màn hình!",
-    );
-    return;
-  }
-
-  const timeStr = new Date().toLocaleTimeString();
-  const tr = document.createElement("tr");
-
-  // Logic Cảnh báo theo bảng yêu cầu
-  const bypassColor = data.isBypass ? "#e74c3c" : "#27ae60"; // Đỏ nếu Cell bị hỏng và đang Bypass
-  const bypassText = data.isBypass ? "Đang Bypass (Hỏng)" : "Hoạt động tốt";
-  const tempColor = data.temp > 45.0 ? "red" : "black";
-
-  tr.innerHTML = `
-    <td style="padding: 10px; border: 1px solid #eee;">${timeStr}</td>
-    <td style="padding: 10px; border: 1px solid #eee; font-weight: bold;">${data.cell_id}</td>
-    <td style="padding: 10px; border: 1px solid #eee; font-weight: bold;">${data.voltage} V</td>
-    <td style="padding: 10px; border: 1px solid #eee;">${data.resistance} mΩ</td>
-    <td style="padding: 10px; border: 1px solid #eee; color: ${tempColor}; font-weight: bold;">${data.temp} °C</td>
-    <td style="padding: 10px; border: 1px solid #eee;">
-      <span style="background: ${bypassColor}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">
-        ${bypassText}
-      </span>
-    </td>
-    <td style="padding: 10px; border: 1px solid #eee; color: red; font-weight: bold;">${data.warning || "Không"}</td>
-  `;
-
-  tbody.prepend(tr);
-  if (tbody.children.length > 15) tbody.removeChild(tbody.lastChild);
-});
-
 function dieuKhienDen(isTurnOn) {
   const logBox = document.getElementById("control-log");
   const time = new Date().toLocaleTimeString();
@@ -377,15 +341,101 @@ function ghiLog(noidung, mauSac = "#00ff00") {
   logBox.scrollTop = logBox.scrollHeight; // Cuộn xuống dòng cuối
 }
 
+// Hàm tạo 16 dòng mặc định cho bảng giám sát
+function initMonitorTable() {
+  const tbody = document.getElementById("monitor-tbody");
+  if (!tbody) return;
+
+  tbody.innerHTML = ""; // Xóa dữ liệu cũ nếu có
+
+  for (let i = 1; i <= 16; i++) {
+    // Tạo 16 dòng với ID tương ứng từng Cell
+    tbody.innerHTML += `
+      <tr id="row-cell-${i}" style="border-bottom: 1px solid #eee;">
+        <td id="cell-${i}-time" style="padding: 8px;">--:--:--</td>
+        <td style="padding: 8px; font-weight: bold; color: #2980b9;">Cell ${i}</td>
+        <td id="cell-${i}-voltage" style="padding: 8px;">--</td>
+        <td id="cell-${i}-current" style="padding: 8px;">--</td>
+        <td id="cell-${i}-temp" style="padding: 8px;">--</td>
+        <td id="cell-${i}-ir" style="padding: 8px;">--</td>
+        <td id="cell-${i}-cr" style="padding: 8px;">--</td>
+        <td id="cell-${i}-bypass" style="padding: 8px;">--</td>
+        <td id="cell-${i}-cb-chudong" style="padding: 8px;">--</td>
+        <td id="cell-${i}-cb-thudong" style="padding: 8px;">--</td>
+        <td id="cell-${i}-cb-tinh" style="padding: 8px;">--</td>
+        <td id="cell-${i}-cb-dienap" style="padding: 8px;">--</td>
+      </tr>
+    `;
+  }
+}
+
 // LẮNG NGHE SỰ KIỆN TỪ SERVER ĐẨY XUỐNG
 if (typeof socket !== "undefined") {
-  // 1. Lắng nghe thiết bị kết nối/ngắt kết nối
+  // Lắng nghe thiết bị kết nối/ngắt kết nối
   socket.on("system-log", (msg) => {
     ghiLog(`📢 HỆ THỐNG: ${msg}`, "#f1c40f"); // Màu vàng báo hệ thống
   });
 
-  // 2. Lắng nghe mạch anh Tài báo "Đã nhận lệnh"
+  // Lắng nghe mạch anh Tài báo "Đã nhận lệnh"
   socket.on("hardware-ack", (msg) => {
     ghiLog(`✅ MẠCH PHẢN HỒI: ${msg}`, "#3498db"); // Màu xanh dương báo thành công
   });
+
+  // Lắng nghe dữ liệu 16 Cell pin đẩy lên để cập nhật Bảng Giám Sát
+  socket.on("hardware-update", (payload) => {
+    const danhSachCell = payload.cells || payload;
+
+    // Bỏ qua nếu dữ liệu không phải là mảng
+    if (!Array.isArray(danhSachCell)) return;
+
+    const timeNow = new Date().toLocaleTimeString();
+
+    // Duyệt qua từng Cell trong cục data để bơm vào bảng
+    danhSachCell.forEach((cellData) => {
+      const cellId = cellData.cell_id;
+      if (!cellId || cellId < 1 || cellId > 16) return;
+
+      const updateCellUI = (suffix, value, unit = "") => {
+        const el = document.getElementById(`cell-${cellId}-${suffix}`);
+        if (el && value !== undefined && value !== null) {
+          if (value === 1 || value === "ON" || value === true) {
+            el.innerHTML = `<span style="background:#2ecc71; color:white; padding:3px 8px; border-radius:12px; font-size:11px; font-weight:bold;">BẬT</span>`;
+          } else if (value === 0 || value === "OFF" || value === false) {
+            el.innerHTML = `<span style="background:#bdc3c7; color:white; padding:3px 8px; border-radius:12px; font-size:11px; font-weight:bold;">TẮT</span>`;
+          } else {
+            el.innerText = value + unit;
+          }
+        }
+      };
+
+      // Điền data vào đúng dòng của cell đó
+      document.getElementById(`cell-${cellId}-time`).innerText = timeNow;
+      updateCellUI("voltage", cellData.voltage, " V");
+      updateCellUI("current", cellData.current, " A");
+      updateCellUI("temp", cellData.temperature, " °C");
+      updateCellUI("ir", cellData.noi_tro, " mΩ");
+      updateCellUI("cr", cellData.dien_tro_tx, " mΩ");
+      updateCellUI("bypass", cellData.bypass);
+      updateCellUI("cb-chudong", cellData.cb_chu_dong);
+      updateCellUI("cb-thudong", cellData.cb_thu_dong);
+      updateCellUI("cb-tinh", cellData.cb_tinh);
+      updateCellUI("cb-dienap", cellData.cb_dien_ap);
+
+      // Hiệu ứng chớp nền báo hiệu có data mới
+      const row = document.getElementById(`row-cell-${cellId}`);
+      if (row) {
+        row.style.transition = "none";
+        row.style.backgroundColor = "#e8f8f5";
+        setTimeout(() => {
+          row.style.transition = "background-color 0.8s ease";
+          row.style.backgroundColor = "transparent";
+        }, 100);
+      }
+    });
+  });
 }
+
+// Chạy hàm này ngay khi trang load xong
+window.onload = function () {
+  initMonitorTable();
+};

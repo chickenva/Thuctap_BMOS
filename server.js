@@ -371,31 +371,59 @@ function createTCPServer(name, port, ioInstance) {
     // Lưu socket của user vào mảng khi kết nối
     activeHardwareClients.push(socket);
 
-    // if (ioInstance) {
-    //   ioInstance.emit(
-    //     "system-log",
-    //     `Mạch phần cứng [${clientIP}] VỪA KẾT NỐI qua TCP.`,
-    //   );
-    // }
+    // socket.on("data", (data) => {
+    //   try {
+    //     const rawString = data.toString("utf8").trim();
+    //     const parsedData = JSON.parse(rawString);
 
+    //     console.log(`[TCP ${name}] 📥 Nhận Data:`, parsedData.cell_id || "BMS");
+
+    //     // Dùng trực tiếp ioInstance được truyền vào
+    //     if (ioInstance) {
+    //       ioInstance.emit("hardware-update", parsedData);
+    //       console.log(`📡 Đã phát 'hardware-update' lên UI qua ${name}`);
+    //     } else {
+    //       console.log("⚠️ Lỗi: Không nhận được biến Socket.io trong hàm TCP!");
+    //     }
+
+    //     socket.write(JSON.stringify({ status: "SUCCESS" }) + "\n");
+    //   } catch (err) {
+    //     console.log(`[TCP] ❌ Lỗi Data:`, err.message);
+    //   }
+    // });
+
+    let dataBuffer = "";
+
+    // KHÔNG CÒN BẤT KỲ SỰ KIỆN socket.on("data") NÀO KHÁC NGOÀI CÁI NÀY:
     socket.on("data", (data) => {
-      try {
-        const rawString = data.toString("utf8").trim();
-        const parsedData = JSON.parse(rawString);
+      // Cộng dồn nước vào thùng
+      dataBuffer += data.toString();
 
-        console.log(`[TCP ${name}] 📥 Nhận Data:`, parsedData.cell_id || "BMS");
+      // Chặt ra theo dấu ngắt dòng của anh Tài
+      let packets = dataBuffer.split("\n");
 
-        // Dùng trực tiếp ioInstance được truyền vào
-        if (ioInstance) {
-          ioInstance.emit("hardware-update", parsedData);
-          console.log(`📡 Đã phát 'hardware-update' lên UI qua ${name}`);
-        } else {
-          console.log("⚠️ Lỗi: Không nhận được biến Socket.io trong hàm TCP!");
+      // Quăng khúc cuối cùng (có thể chưa hoàn chỉnh) lại vào thùng chờ đợt sau
+      dataBuffer = packets.pop();
+
+      // Đem các khúc đã nguyên vẹn đi xử lý
+      for (let i = 0; i < packets.length; i++) {
+        let completeJsonString = packets[i].trim();
+
+        if (completeJsonString.length > 0) {
+          try {
+            let parsedData = JSON.parse(completeJsonString);
+
+            // Đẩy qua Web Giám sát (Nhớ sửa tên biến ioInstance cho đúng với code của bạn)
+            if (
+              typeof ioInstance !== "undefined" &&
+              parsedData.type === "BMS_DATA"
+            ) {
+              ioInstance.emit("hardware-update", parsedData);
+            }
+          } catch (e) {
+            console.log("[TCP] ❌ Lỗi Cú Pháp Gói Tin:", e.message);
+          }
         }
-
-        socket.write(JSON.stringify({ status: "SUCCESS" }) + "\n");
-      } catch (err) {
-        console.log(`[TCP] ❌ Lỗi Data:`, err.message);
       }
     });
 
@@ -412,10 +440,7 @@ function createTCPServer(name, port, ioInstance) {
 
       // 2BẮN LOG LÊN WEB KHI MẠCH PHẦN CỨNG BỊ RÚT ĐIỆN / MẤT MẠNG
       if (ioInstance) {
-        ioInstance.emit(
-          "system-log",
-          `🔴 Mạch phần cứng [${clientIP}] ĐÃ NGẮT KẾT NỐI.`,
-        );
+        ioInstance.emit("system-log", `🔴 Mạch phần cứng ĐÃ NGẮT KẾT NỐI.`);
       }
     });
   });
