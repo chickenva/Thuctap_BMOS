@@ -43,14 +43,21 @@
         id="btn-tab-monitor"
         onclick="switchDesktopTab('tab-monitor')"
       >
-        Giám Sát Real-time
+        Giám Sát Pin
       </button>
       <button
         class="desktop-tab-btn"
         id="btn-tab-control"
         onclick="switchDesktopTab('tab-control')"
       >
-        Điều Khiển & Test
+        Điều Khiển Phần Cứng
+      </button>
+      <button
+        class="desktop-tab-btn"
+        id="btn-tab-charge-test"
+        onclick="switchDesktopTab('tab-charge-test')"
+      >
+        Sạc / Xả Tự Động
       </button>
     </div>
 
@@ -291,6 +298,466 @@
           >
             > Hệ thống Điều khiển BMS4CAR đã sẵn sàng...
           </div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      id="tab-charge-test"
+      class="tab-content"
+      style="background: #f8fafc; padding: 25px; border-radius: 16px"
+    >
+      <div
+        style="
+          border-bottom: 2px solid #e2e8f0;
+          padding-bottom: 15px;
+          margin-bottom: 25px;
+        "
+      >
+        <h3
+          style="
+            color: #1e293b;
+            font-size: 1.4rem;
+            margin: 0;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+          "
+        >
+          HỆ THỐNG KIỂM THỬ SẠC / XẢ TỰ ĐỘNG
+        </h3>
+        <p style="color: #64748b; font-size: 0.9rem; margin-top: 5px">
+          Quản lý và giám sát chu trình đóng cắt Mosfet theo thời gian thực
+        </p>
+      </div>
+
+      <div
+        style="
+          display: grid;
+          grid-template-columns: 350px 1fr;
+          gap: 25px;
+          align-items: start;
+        "
+      >
+        <div style="display: flex; flex-direction: column; gap: 20px">
+          <div
+            id="mcu-status-card"
+            style="
+              background: #fff;
+              padding: 20px;
+              border-radius: 12px;
+              box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+              border: 1px solid #e2e8f0;
+              text-align: center;
+            "
+          >
+            <!-- Trạng thái kết nối -->
+            <div
+              style="
+                font-size: 0.75rem;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                color: #94a3b8;
+                margin-bottom: 8px;
+              "
+            >
+              Trạng thái thiết bị
+            </div>
+            <div
+              id="mcu-status-text"
+              style="font-size: 1.1rem; font-weight: 800; color: #94a3b8"
+            >
+              ĐANG NGẮT KẾT NỐI
+            </div>
+          </div>
+
+          <!-- Đồng hồ đếm ngược -->
+          <div
+            id="countdown-card"
+            style="
+              background: #fff;
+              padding: 25px 20px;
+              border-radius: 12px;
+              box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+              border: 1px solid #e2e8f0;
+              text-align: center;
+            "
+          >
+            <div
+              style="
+                font-size: 0.75rem;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                color: #64748b;
+                margin-bottom: 5px;
+              "
+            >
+              THỜI GIAN CÒN LẠI
+            </div>
+            <div
+              id="countdown-display"
+              style="
+                font-size: 3.2rem;
+                font-weight: 800;
+                color: #cbd5e1;
+                font-family:
+                  &quot;Consolas&quot;, &quot;Monaco&quot;, monospace;
+                letter-spacing: 2px;
+                line-height: 1.2;
+              "
+            >
+              --:--
+            </div>
+            <div
+              id="countdown-mode"
+              style="
+                font-size: 0.9rem;
+                font-weight: 800;
+                color: #94a3b8;
+                text-transform: uppercase;
+              "
+            >
+              SẴN SÀNG
+            </div>
+          </div>
+
+          <!-- Chế độ điều khiển -->
+          <div
+            style="
+              background: #fff;
+              padding: 25px;
+              border-radius: 12px;
+              box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+              border: 1px solid #e2e8f0;
+            "
+          >
+            <div
+              style="
+                display: flex;
+                background: #f1f5f9;
+                border-radius: 8px;
+                padding: 4px;
+                margin-bottom: 20px;
+              "
+            >
+              <button
+                id="tab-manual"
+                onclick="switchMode('MANUAL')"
+                style="
+                  flex: 1;
+                  padding: 10px;
+                  border-radius: 6px;
+                  border: none;
+                  background: #fff;
+                  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                  font-weight: 700;
+                  color: #0f172a;
+                  cursor: pointer;
+                  transition: 0.2s;
+                "
+              >
+                THỦ CÔNG
+              </button>
+              <button
+                id="tab-auto"
+                onclick="switchMode('AUTO')"
+                style="
+                  flex: 1;
+                  padding: 10px;
+                  border-radius: 6px;
+                  border: none;
+                  background: transparent;
+                  font-weight: 700;
+                  color: #64748b;
+                  cursor: pointer;
+                  transition: 0.2s;
+                "
+              >
+                TỰ ĐỘNG
+              </button>
+            </div>
+
+            <div id="manual-controls" style="display: block">
+              <div
+                style="
+                  text-align: center;
+                  margin-bottom: 15px;
+                  color: #64748b;
+                  font-size: 0.85rem;
+                  font-weight: 600;
+                "
+              >
+                Chế độ chạy liên tục cho đến khi bấm DỪNG.
+              </div>
+
+              <div
+                style="
+                  display: grid;
+                  grid-template-columns: 1fr 1fr;
+                  gap: 12px;
+                  margin-bottom: 12px;
+                "
+              >
+                <button
+                  onclick="executeCommand('CHARGE', 0)"
+                  id="btn-manual-charge"
+                  style="
+                    padding: 14px;
+                    background: #059669;
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    font-weight: 700;
+                    cursor: pointer;
+                    transition: 0.2s;
+                  "
+                >
+                  BẬT SẠC
+                </button>
+                <button
+                  onclick="executeCommand('DISCHARGE', 0)"
+                  id="btn-manual-discharge"
+                  style="
+                    padding: 14px;
+                    background: #dc2626;
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    font-weight: 700;
+                    cursor: pointer;
+                    transition: 0.2s;
+                  "
+                >
+                  BẬT XẢ
+                </button>
+              </div>
+              <button
+                onclick="executeCommand('STOP', 0)"
+                id="btn-manual-stop"
+                disabled
+                style="
+                  width: 100%;
+                  padding: 14px;
+                  background: #64748b;
+                  color: white;
+                  border: none;
+                  border-radius: 8px;
+                  font-weight: 700;
+                  cursor: not-allowed;
+                  opacity: 0.5;
+                  transition: 0.2s;
+                "
+              >
+                DỪNG HOẠT ĐỘNG
+              </button>
+            </div>
+
+            <div id="auto-controls" style="display: none">
+              <label
+                style="
+                  display: block;
+                  font-size: 0.85rem;
+                  font-weight: 600;
+                  color: #475569;
+                  margin-bottom: 10px;
+                "
+              >
+                THỜI GIAN THỰC THI (PHÚT)
+              </label>
+              <input
+                type="number"
+                id="test-duration"
+                value="5"
+                min="1"
+                style="
+                  width: 100%;
+                  padding: 12px;
+                  border-radius: 8px;
+                  border: 2px solid #e2e8f0;
+                  font-size: 1.1rem;
+                  font-weight: 600;
+                  outline: none;
+                  margin-bottom: 20px;
+                "
+              />
+
+              <div style="display: flex; flex-direction: column; gap: 12px">
+                <button
+                  onclick="startAutoTimed('CHARGE')"
+                  id="btn-auto-charge"
+                  style="
+                    width: 100%;
+                    padding: 14px;
+                    background: #059669;
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    font-weight: 700;
+                    cursor: pointer;
+                    transition: 0.2s;
+                  "
+                >
+                  TỰ ĐỘNG SẠC
+                </button>
+                <button
+                  onclick="startAutoTimed('DISCHARGE')"
+                  id="btn-auto-discharge"
+                  style="
+                    width: 100%;
+                    padding: 14px;
+                    background: #dc2626;
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    font-weight: 700;
+                    cursor: pointer;
+                    transition: 0.2s;
+                  "
+                >
+                  TỰ ĐỘNG XẢ
+                </button>
+
+                <button
+                  onclick="executeCommand('STOP', 0)"
+                  id="btn-auto-stop"
+                  disabled
+                  style="
+                    width: 100%;
+                    padding: 14px;
+                    background: #64748b;
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    font-weight: 700;
+                    cursor: not-allowed;
+                    opacity: 0.5;
+                    transition: 0.2s;
+                    margin-top: 4px;
+                  "
+                >
+                  DỪNG HOẠT ĐỘNG
+                </button>
+              </div>
+            </div>
+            <!-- <div id="auto-controls" style="display: none">
+              <label
+                style="
+                  display: block;
+                  font-size: 0.85rem;
+                  font-weight: 600;
+                  color: #475569;
+                  margin-bottom: 10px;
+                "
+                >THỜI GIAN THỰC THI (PHÚT)</label
+              >
+              <input
+                type="number"
+                id="test-duration"
+                value="5"
+                min="1"
+                style="
+                  width: 100%;
+                  padding: 12px;
+                  border-radius: 8px;
+                  border: 2px solid #e2e8f0;
+                  font-size: 1.1rem;
+                  font-weight: 600;
+                  outline: none;
+                  margin-bottom: 20px;
+                "
+              />
+
+              <div style="display: flex; flex-direction: column; gap: 12px">
+                <button
+                  onclick="startAutoTimed('CHARGE')"
+                  id="btn-auto-charge"
+                  style="
+                    width: 100%;
+                    padding: 14px;
+                    background: #059669;
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    font-weight: 700;
+                    cursor: pointer;
+                    transition: 0.2s;
+                  "
+                >
+                  TỰ ĐỘNG SẠC
+                </button>
+                <button
+                  onclick="startAutoTimed('DISCHARGE')"
+                  id="btn-auto-discharge"
+                  style="
+                    width: 100%;
+                    padding: 14px;
+                    background: #dc2626;
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    font-weight: 700;
+                    cursor: pointer;
+                    transition: 0.2s;
+                  "
+                >
+                  TỰ ĐỘNG XẢ
+                </button>
+              </div>
+            </div> -->
+          </div>
+        </div>
+
+        <!-- Log -->
+        <div
+          style="
+            background: #0f172a;
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 500px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+          "
+        >
+          <div
+            style="
+              background: #1e293b;
+              padding: 12px 20px;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              border-bottom: 1px solid #334155;
+            "
+          >
+            <span
+              style="
+                color: #94a3b8;
+                font-family: monospace;
+                font-size: 0.8rem;
+                font-weight: 600;
+              "
+              >SYSTEM_LOG_CONSOLE</span
+            >
+            <span
+              onclick="
+                document.getElementById('mcu-log-terminal').innerHTML = ''
+              "
+              style="color: #64748b; font-size: 0.75rem; cursor: pointer"
+              >Clear</span
+            >
+          </div>
+          <div
+            id="mcu-log-terminal"
+            style="
+              flex-grow: 1;
+              padding: 20px;
+              font-family: &quot;Consolas&quot;, &quot;Monaco&quot;, monospace;
+              font-size: 0.85rem;
+              overflow-y: auto;
+              color: #e2e8f0;
+              line-height: 1.7;
+            "
+          ></div>
         </div>
       </div>
     </div>

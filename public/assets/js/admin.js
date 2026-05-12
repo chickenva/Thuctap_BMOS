@@ -52,21 +52,7 @@ function closeModal(result) {
 }
 
 // ============================================================
-// ------------------------ LOGOUT ----------------------------
-// ============================================================
-async function handleLogout() {
-  const confirmed = await showConfirm("Bạn có chắc chắn muốn đăng xuất?", "❓");
-  if (confirmed) {
-    sessionStorage.removeItem("bmos_role");
-    sessionStorage.removeItem("bmos_name");
-    sessionStorage.removeItem("bmos_port");
-    window.location.href = "/login";
-  }
-}
-
-// ============================================================
-// ------------------------ DASHBOARD -------------------------
-// ============================================================
+// Khi trang admin được tải, kiểm tra role và load dữ liệu cần thiết
 document.addEventListener("DOMContentLoaded", () => {
   if (document.body.classList.contains("dashboard-page")) {
     const myRole = sessionStorage.getItem("bmos_role");
@@ -112,10 +98,49 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-// ============================================================
-// -------------------------- CRUD ----------------------------
-// ============================================================
+// Đăng xuất
+async function handleLogout() {
+  const confirmed = await showConfirm("Bạn có chắc chắn muốn đăng xuất?", "❓");
+  if (confirmed) {
+    sessionStorage.removeItem("bmos_role");
+    sessionStorage.removeItem("bmos_name");
+    sessionStorage.removeItem("bmos_port");
+    window.location.href = "/login";
+  }
+}
 
+// Chuyển đổi các tab trên desktop
+async function switchDesktopTab(tabId) {
+  // Ẩn tất cả nội dung
+  document
+    .querySelectorAll(".tab-content")
+    .forEach((el) => el.classList.remove("active"));
+
+  // Bỏ active tất cả nút
+  document
+    .querySelectorAll(".desktop-tab-btn")
+    .forEach((el) => el.classList.remove("active"));
+
+  // Hiển thị tab được chọn
+  document.getElementById(tabId).classList.add("active");
+
+  // Active nút tương ứng
+  if (tabId === "tab-list") {
+    document.getElementById("btn-tab-list").classList.add("active");
+  } else if (tabId === "tab-add") {
+    document.getElementById("btn-tab-add").classList.add("active");
+  } else if (tabId === "tab-monitor") {
+    document.getElementById("btn-tab-monitor").classList.add("active");
+  } else if (tabId === "tab-control") {
+    document.getElementById("btn-tab-control").classList.add("active");
+  } else if (tabId === "tab-charge-test") {
+    document.getElementById("btn-tab-charge-test").classList.add("active");
+  }
+}
+
+// ============================================================
+// ---------------------- QUẢN LÝ TÀI KHOẢN -------------------
+// ============================================================
 async function loadUsers() {
   try {
     const res = await fetch("/api/users");
@@ -187,7 +212,6 @@ function startEdit(user) {
     .getElementById("form-container")
     .scrollIntoView({ behavior: "smooth" });
 
-  // Nếu đang mở trên Desktop App thì tự động chuyển sang Tab Form
   if (typeof switchDesktopTab === "function") {
     switchDesktopTab("tab-add");
   }
@@ -214,7 +238,6 @@ function resetForm() {
   }
 }
 
-// Xử lý nút Lưu
 async function handleSaveUser() {
   const id = document.getElementById("edit-id").value;
 
@@ -230,7 +253,7 @@ async function handleSaveUser() {
   };
 
   if (!data.username || !data.password) {
-    await showModal("Vui lòng nhập đầy đủ thông tin)!", "⚠️");
+    await showModal("Vui lòng nhập đầy đủ thông tin!", "⚠️");
     return;
   }
 
@@ -282,103 +305,367 @@ async function deleteUser(id) {
   }
 }
 
-async function switchDesktopTab(tabId) {
-  // Ẩn tất cả nội dung
-  document
-    .querySelectorAll(".tab-content")
-    .forEach((el) => el.classList.remove("active"));
+// ============================================================
+// ---------------------- TAB GIÁM SÁT -------------------
+// ============================================================
+// ==========================================
+// CÁC BIẾN TOÀN CỤC CHUNG
+// ==========================================
+let isMcuConnected = false;
+let currentMcuId = "Unknown";
+let countdownInterval = null;
+let timerCounter = 0;
+let currentMode = "MANUAL";
+let isSystemRunning = false;
+let pendingActionName = "";
+let currentRunningAction = "";
 
-  // Bỏ active tất cả nút
-  document
-    .querySelectorAll(".desktop-tab-btn")
-    .forEach((el) => el.classList.remove("active"));
+// ==========================================
+// HÀM HIỂN THỊ LOG & POPUP
+// ==========================================
+function appendMcuLog(message, type = "info") {
+  const terminal = document.getElementById("mcu-log-terminal");
+  if (!terminal) return;
+  const colors = {
+    info: "#94a3b8",
+    success: "#10b981",
+    error: "#ef4444",
+    warning: "#f59e0b",
+    process: "#3b82f6",
+  };
+  const timeStr = new Date().toLocaleTimeString("en-GB", { hour12: false });
+  terminal.innerHTML += `<div style="margin-bottom: 4px;"><span style="color: #475569;">[${timeStr}]</span> <span style="color: ${colors[type]};">${message}</span></div>`;
+  terminal.scrollTop = terminal.scrollHeight;
+}
 
-  // Hiển thị tab được chọn
-  document.getElementById(tabId).classList.add("active");
+// ==========================================
+// GIAO DIỆN ĐỒNG HỒ & NÚT BẤM
+// ==========================================
+function updateTimerDisplay(seconds, state, modeText) {
+  const display = document.getElementById("countdown-display");
+  const modeLabel = document.getElementById("countdown-mode");
+  if (!display || !modeLabel) return;
 
-  // Active nút tương ứng
-  if (tabId === "tab-list") {
-    document.getElementById("btn-tab-list").classList.add("active");
-  } else if (tabId === "tab-add") {
-    document.getElementById("btn-tab-add").classList.add("active");
-  } else if (tabId === "tab-monitor") {
-    document.getElementById("btn-tab-monitor").classList.add("active");
-  } else if (tabId === "tab-control") {
-    document.getElementById("btn-tab-control").classList.add("active");
+  if (state === "READY") {
+    display.innerText = "--:--";
+    display.style.color = "#cbd5e1";
+    modeLabel.innerText = "SẴN SÀNG";
+    modeLabel.style.color = "#94a3b8";
+    return;
+  }
+  if (state === "DONE") {
+    display.innerText = "00:00";
+    display.style.color = "#10b981";
+    modeLabel.innerText = "HOÀN TẤT";
+    modeLabel.style.color = "#10b981";
+    return;
+  }
+
+  const m = Math.floor(seconds / 60)
+    .toString()
+    .padStart(2, "0");
+  const s = (seconds % 60).toString().padStart(2, "0");
+  display.innerText = `${m}:${s}`;
+  display.style.color = "#0f172a";
+
+  modeLabel.innerText =
+    state === "RUNNING_UP"
+      ? `ĐANG ${modeText} (LIÊN TỤC)`
+      : `ĐANG ${modeText} (TỰ ĐỘNG)`;
+  modeLabel.style.color = modeText === "SẠC" ? "#059669" : "#dc2626";
+}
+
+function updateButtonUI(status, actionType = "") {
+  const btnMCharge = document.getElementById("btn-manual-charge");
+  const btnMDischarge = document.getElementById("btn-manual-discharge");
+  const btnMStop = document.getElementById("btn-manual-stop");
+
+  const btnACharge = document.getElementById("btn-auto-charge");
+  const btnADischarge = document.getElementById("btn-auto-discharge");
+  const btnAStop = document.getElementById("btn-auto-stop");
+
+  if (!btnMCharge || !btnAStop) return;
+
+  if (status === "READY") {
+    isSystemRunning = false;
+    btnMCharge.disabled = false;
+    btnMCharge.style.opacity = "1";
+    btnMDischarge.disabled = false;
+    btnMDischarge.style.opacity = "1";
+    btnMStop.disabled = true;
+    btnMStop.style.opacity = "0.5";
+    btnMStop.style.cursor = "not-allowed";
+
+    btnACharge.disabled = false;
+    btnACharge.style.opacity = "1";
+    btnADischarge.disabled = false;
+    btnADischarge.style.opacity = "1";
+    btnAStop.disabled = true;
+    btnAStop.style.opacity = "0.5";
+    btnAStop.style.cursor = "not-allowed";
+  } else if (status === "RUNNING") {
+    isSystemRunning = true;
+
+    if (currentMode === "MANUAL") {
+      btnMCharge.disabled = false;
+      btnMCharge.style.opacity = actionType === "CHARGE" ? "1" : "0.4";
+      btnMDischarge.disabled = false;
+      btnMDischarge.style.opacity = actionType === "DISCHARGE" ? "1" : "0.4";
+      btnMStop.disabled = false;
+      btnMStop.style.opacity = "1";
+      btnMStop.style.cursor = "pointer";
+    } else if (currentMode === "AUTO") {
+      btnACharge.disabled = false;
+      btnACharge.style.opacity = actionType === "CHARGE" ? "1" : "0.4";
+      btnADischarge.disabled = false;
+      btnADischarge.style.opacity = actionType === "DISCHARGE" ? "1" : "0.4";
+      btnAStop.disabled = false;
+      btnAStop.style.opacity = "1";
+      btnAStop.style.cursor = "pointer";
+      btnMStop.disabled = false;
+      btnMStop.style.opacity = "1";
+      btnMStop.style.cursor = "pointer";
+    }
   }
 }
 
-function dieuKhienDen(isTurnOn) {
-  const logBox = document.getElementById("control-log");
-  const time = new Date().toLocaleTimeString();
+// ==========================================
+// HÀM NGẮT GIAO DIỆN
+// ==========================================
+function handleMcuStop(uiState) {
+  if (isSystemRunning)
+    appendMcuLog(`✅ Hệ thống đã DỪNG và trở về trạng thái Sẵn sàng.`, "info");
+  clearInterval(countdownInterval);
+  updateTimerDisplay(0, uiState, "");
+  updateButtonUI("READY");
+  isSystemRunning = false;
+  currentRunningAction = "";
+}
 
-  // Quy chuẩn: 1 là BẬT, 0 là TẮT (Số nguyên, không phải chuỗi)
-  const actionCode = isTurnOn ? 1 : 0;
-  const actionText = isTurnOn ? "BẬT (1)" : "TẮT (0)";
+// ==========================================
+// HÀM CHUYỂN CHẾ ĐỘ
+// ==========================================
+function switchMode(mode) {
+  // CHỐT CHẶN: Nếu mode nhấn vào trùng với mode hiện tại thì không làm gì cả
+  if (mode === currentMode) return;
 
-  // 1. In log ra màn hình UI cho có cảm giác "đàng hoàng"
-  logBox.innerHTML += `\n[${time}] 📤 Phát lệnh xuống mạch: Thiết bị [LED_TEST] | Trạng thái: ${actionText}`;
-  logBox.scrollTop = logBox.scrollHeight; // Tự động cuộn
+  // Nếu hệ thống đang chạy (sạc hoặc xả) thì mới thực hiện ngắt
+  if (isSystemRunning) {
+    appendMcuLog(
+      `⚠️ Chuyển chế độ: Tự động ngắt hệ thống để đảm bảo an toàn.`,
+      "warning",
+    );
 
-  // 2. Bắn data qua Socket.io lên Server
-  if (typeof socket !== "undefined") {
-    socket.emit("send-command-to-hardware", {
-      device: "LED_TEST",
-      action: actionCode, // Gửi số 1 hoặc 0
-    });
+    // Ngắt đồng hồ và giao diện trên Web trước
+    clearInterval(countdownInterval);
+    updateTimerDisplay(0, "READY", "");
+    updateButtonUI("READY");
+
+    // Sau đó mới bắn lệnh STOP xuống mạch (Chỉ bắn 1 lần duy nhất)
+    if (typeof socket !== "undefined" && isMcuConnected) {
+      socket.emit("manual-mcu-command", { action: "STOP" });
+    }
+
+    isSystemRunning = false;
+    currentRunningAction = "";
+  }
+
+  // Thực hiện chuyển chế độ UI
+  currentMode = mode;
+
+  const tabManual = document.getElementById("tab-manual");
+  const tabAuto = document.getElementById("tab-auto");
+  const manualControls = document.getElementById("manual-controls");
+  const autoControls = document.getElementById("auto-controls");
+
+  if (tabManual) {
+    tabManual.style.background = mode === "MANUAL" ? "#ffffff" : "transparent";
+    tabManual.style.color = mode === "MANUAL" ? "#1e3a8a" : "#64748b";
+  }
+  if (tabAuto) {
+    tabAuto.style.background = mode === "AUTO" ? "#ffffff" : "transparent";
+    tabAuto.style.color = mode === "AUTO" ? "#1e3a8a" : "#64748b";
+  }
+  if (manualControls)
+    manualControls.style.display = mode === "MANUAL" ? "block" : "none";
+  if (autoControls)
+    autoControls.style.display = mode === "AUTO" ? "block" : "none";
+
+  // Thông báo Mode mới cho mạch
+  if (typeof socket !== "undefined" && isMcuConnected) {
+    socket.emit("manual-mcu-command", { mode: mode });
+    appendMcuLog(
+      `🔄 Chuyển sang chế độ: ${mode === "MANUAL" ? "THỦ CÔNG" : "TỰ ĐỘNG"}`,
+      "process",
+    );
+  }
+}
+
+// ==========================================
+// HÀM GỬI LỆNH TRUNG TÂM XUỐNG VĐK
+// ==========================================
+function executeCommand(action, mins) {
+  if (!isMcuConnected)
+    return appendMcuLog("KHÔNG THỂ GỬI: Mạch đang ngoại tuyến.", "error");
+
+  if (isSystemRunning && action === currentRunningAction && action !== "STOP") {
+    return;
+  }
+
+  let payload = {};
+
+  if (action === "STOP") {
+    payload = { action: "STOP" };
+    appendMcuLog("🛑 Đã gửi lệnh DỪNG khẩn cấp xuống mạch!", "warning");
+    handleMcuStop("READY");
   } else {
-    logBox.innerHTML += `\n[${time}] ❌ ERROR: Mất kết nối Socket nội bộ tới Server!`;
+    if (currentMode === "MANUAL") {
+      payload = { action: action };
+    } else {
+      payload = { action: action, minutes: mins.toString() };
+    }
+    pendingActionName = action === "CHARGE" ? "SẠC" : "XẢ";
+    appendMcuLog(
+      `Đã gửi lệnh ${pendingActionName}. Đang chờ mạch phản hồi...`,
+      "process",
+    );
   }
+
+  socket.emit("manual-mcu-command", payload);
 }
 
-// Hàm tiện ích để in Log ra màn hình đen
-function ghiLog(noidung, mauSac = "#00ff00") {
-  const logBox = document.getElementById("control-log");
-  if (!logBox) return; // Tránh lỗi nếu chưa mở Tab Điều Khiển
-
-  const time = new Date().toLocaleTimeString();
-  logBox.innerHTML += `\n<span style="color: ${mauSac}">[${time}] ${noidung}</span>`;
-  logBox.scrollTop = logBox.scrollHeight; // Cuộn xuống dòng cuối
+function startAutoTimed(action) {
+  const mins = document.getElementById("test-duration").value;
+  if (!mins || mins <= 0) return alert("Vui lòng nhập số phút hợp lệ!");
+  executeCommand(action, mins);
 }
 
-// Hàm tạo 16 dòng mặc định cho bảng giám sát
-function initMonitorTable() {
-  const tbody = document.getElementById("monitor-tbody");
-  if (!tbody) return;
-
-  tbody.innerHTML = ""; // Xóa dữ liệu cũ nếu có
-
-  for (let i = 1; i <= 16; i++) {
-    // Tạo 16 dòng với ID tương ứng từng Cell
-    tbody.innerHTML += `
-      <tr id="row-cell-${i}" style="border-bottom: 1px solid #eee;">
-        <td id="cell-${i}-time" style="padding: 8px;">--:--:--</td>
-        <td style="padding: 8px; font-weight: bold; color: #2980b9;">Cell ${i}</td>
-        <td id="cell-${i}-voltage" style="padding: 8px;">--</td>
-        <td id="cell-${i}-current" style="padding: 8px;">--</td>
-        <td id="cell-${i}-temp" style="padding: 8px;">--</td>
-        <td id="cell-${i}-ir" style="padding: 8px;">--</td>
-        <td id="cell-${i}-cr" style="padding: 8px;">--</td>
-        <td id="cell-${i}-bypass" style="padding: 8px;">--</td>
-        <td id="cell-${i}-cb-chudong" style="padding: 8px;">--</td>
-        <td id="cell-${i}-cb-thudong" style="padding: 8px;">--</td>
-        <td id="cell-${i}-cb-tinh" style="padding: 8px;">--</td>
-        <td id="cell-${i}-cb-dienap" style="padding: 8px;">--</td>
-      </tr>
-    `;
-  }
-}
-
-// LẮNG NGHE SỰ KIỆN TỪ SERVER ĐẨY XUỐNG
+// ==========================================
+// LẮNG NGHE TÍN HIỆU TỪ BACKEND / MẠCH
+// ==========================================
 if (typeof socket !== "undefined") {
-  // Lắng nghe thiết bị kết nối/ngắt kết nối
-  socket.on("system-log", (msg) => {
-    ghiLog(`📢 HỆ THỐNG: ${msg}`, "#f1c40f"); // Màu vàng báo hệ thống
+  socket.on("mcu-connection-status", (data) => {
+    isMcuConnected = data.connected;
+    if (data.mcu_id) currentMcuId = data.mcu_id;
+
+    const statusText = document.getElementById("mcu-status-text");
+    const statusCard = document.getElementById("mcu-status-card");
+
+    if (isMcuConnected) {
+      if (statusText) {
+        statusText.innerText = "THIẾT BỊ ĐÃ KẾT NỐI";
+        statusText.style.color = "#059669";
+      }
+      if (statusCard) statusCard.style.borderColor = "#059669";
+      appendMcuLog(
+        `✅ [Vi điều khiển: ${currentMcuId}] đã kết nối vào hệ thống.`,
+        "success",
+      );
+    } else {
+      if (statusText) {
+        statusText.innerText = "ĐANG NGẮT KẾT NỐI";
+        statusText.style.color = "#94a3b8";
+      }
+      if (statusCard) statusCard.style.borderColor = "#e2e8f0";
+      appendMcuLog(`❌ CẢNH BÁO: Vi điều khiển đã mất kết nối!`, "error");
+
+      clearInterval(countdownInterval);
+      updateTimerDisplay(0, "READY", "");
+      updateButtonUI("READY");
+    }
   });
 
-  // Lắng nghe mạch anh Tài báo "Đã nhận lệnh"
+  socket.on("mcu-ack-received", (data) => {
+    const mcuStatus = data.status ? data.status.toUpperCase() : "";
+    if (mcuStatus === "STOP" || mcuStatus === "DONE" || mcuStatus === "IDLE") {
+      handleMcuStop("READY");
+      return;
+    }
+
+    const isCharging = mcuStatus === "CHARGING";
+    const actionType = isCharging ? "CHARGE" : "DISCHARGE";
+    const statusVN = isCharging ? "SẠC" : "XẢ";
+
+    if (isSystemRunning && currentRunningAction === actionType) {
+      return;
+    }
+
+    currentRunningAction = actionType;
+    appendMcuLog(`✅ Mạch báo cáo đang thực thi: ${statusVN}.`, "success");
+    updateButtonUI("RUNNING", actionType);
+
+    clearInterval(countdownInterval);
+
+    if (currentMode === "MANUAL") {
+      timerCounter = 0;
+      updateTimerDisplay(timerCounter, "RUNNING_UP", statusVN);
+      countdownInterval = setInterval(() => {
+        timerCounter++;
+        updateTimerDisplay(timerCounter, "RUNNING_UP", statusVN);
+      }, 1000);
+    } else {
+      const inputMins = document.getElementById("test-duration").value;
+      timerCounter = parseInt(inputMins) * 60;
+      updateTimerDisplay(timerCounter, "RUNNING_DOWN", statusVN);
+      countdownInterval = setInterval(() => {
+        timerCounter--;
+        if (timerCounter >= 0) {
+          updateTimerDisplay(timerCounter, "RUNNING_DOWN", statusVN);
+        } else {
+          clearInterval(countdownInterval);
+          appendMcuLog(
+            `⏱️ Đã hết thời gian Tự động! Tiến hành ngắt mạch.`,
+            "warning",
+          );
+          executeCommand("STOP", 0);
+        }
+      }, 1000);
+    }
+  });
+
+  socket.on("mcu-test-completed", () => handleMcuStop("DONE"));
+  socket.on("mcu-status-idle", () => handleMcuStop("READY"));
+
+  socket.on("mcu-physical-button", (cmd) => {
+    if (cmd === "MODE_MANUAL" && currentMode !== "MANUAL") {
+      isSystemRunning = false;
+      switchMode("MANUAL");
+    } else if (cmd === "MODE_AUTO" && currentMode !== "AUTO") {
+      isSystemRunning = false;
+      switchMode("AUTO");
+    } else if (cmd === "START_CHARGE") {
+      executeCommand(
+        "CHARGE",
+        currentMode === "MANUAL"
+          ? 0
+          : document.getElementById("test-duration").value,
+      );
+    } else if (cmd === "START_DISCHARGE") {
+      executeCommand(
+        "DISCHARGE",
+        currentMode === "MANUAL"
+          ? 0
+          : document.getElementById("test-duration").value,
+      );
+    } else if (cmd === "CANCEL" || cmd === "STOP") {
+      executeCommand("STOP", 0);
+    }
+  });
+}
+
+// ============================================================
+// -------------------------- DÙNG CHUNG ----------------------
+// ============================================================
+// --- LẮNG NGHE SỰ KIỆN SOCKET (GỘP CHUNG TẤT CẢ) ---
+if (typeof socket !== "undefined") {
+  // Hệ thống báo cáo
+  socket.on("system-log", (msg) => {
+    ghiLog(`📢 HỆ THỐNG: ${msg}`, "#f1c40f", "control-log");
+  });
+
+  // Mạch cũ phản hồi
   socket.on("hardware-ack", (msg) => {
-    ghiLog(`✅ MẠCH PHẢN HỒI: ${msg}`, "#3498db"); // Màu xanh dương báo thành công
+    ghiLog(`✅ MẠCH PHẢN HỒI: ${msg}`, "#3498db", "control-log");
   });
 
   // Lắng nghe dữ liệu 16 Cell pin đẩy lên để cập nhật Bảng Giám Sát
@@ -433,9 +720,18 @@ if (typeof socket !== "undefined") {
       }
     });
   });
+
+  // Lắng nghe dữ liệu Mạch Vinfast gửi lên
+  socket.on("vinfast-mcu-log", (data) => {
+    let color = "#00ff00"; // Mặc định xanh lá
+    if (data.type === "system") color = "#f1c40f"; // Vàng
+    if (data.type === "error") color = "#e74c3c"; // Đỏ
+
+    // In log vào đúng bảng của Tab Vinfast
+    ghiLog(data.msg, color, "vinfast-log");
+  });
 }
 
-// Chạy hàm này ngay khi trang load xong
 window.onload = function () {
   initMonitorTable();
 };

@@ -7,6 +7,8 @@ const socketIo = require("socket.io").Server;
 const dgram = require("dgram"); // Thư viện cho UDP
 const net = require("net"); // Dùng cho App PC/Mobile (TCP Raw Socket)
 const { time } = require("console");
+const { SerialPort } = require("serialport");
+const { ReadlineParser } = require("@serialport/parser-readline");
 
 // =============================================================================
 // ----------------------------- CẤU HÌNH HỆ THỐNG -----------------------------
@@ -357,91 +359,124 @@ serverAdmin.listen(CONFIG.PORT.ADMIN_WEB, "0.0.0.0", () => {
 });
 
 // =============================================================================
-// --------------------------- KÊNH TCP (CỔNG 2222) ----------------------------
+// --------------------------- KÊNH TCP ADMIN (CỔNG 2222) ----------------------
 // =============================================================================
-// Mảng lưu các thiết bị phần cứng đang kết nối
+// ==========================================
+// KHAI BÁO BIẾN TOÀN CỤC VÀ TẠO TCP SERVER
+// ==========================================
+let isMcuConnected = false;
+let mcuSocket = null;
 let activeHardwareClients = [];
 
 function createTCPServer(name, port, ioInstance) {
   const tcpServer = net.createServer((socket) => {
+    // LƯU IP NGAY TỪ ĐẦU ĐỂ KHÔNG BỊ MẤT KHI RỚT MẠNG
+    const clientIp = socket.remoteAddress;
     console.log(
-      `[TCP ${name} - Port ${port}] 🟢 Thiết bị kết nối: ${socket.remoteAddress}`,
+      `[TCP ${name} - Port ${port}] 🟢 Thiết bị kết nối: ${clientIp}`,
     );
 
-    // Lưu socket của user vào mảng khi kết nối
+    isMcuConnected = true;
+    mcuSocket = socket;
     activeHardwareClients.push(socket);
 
-    // socket.on("data", (data) => {
-    //   try {
-    //     const rawString = data.toString("utf8").trim();
-    //     const parsedData = JSON.parse(rawString);
-
-    //     console.log(`[TCP ${name}] 📥 Nhận Data:`, parsedData.cell_id || "BMS");
-
-    //     // Dùng trực tiếp ioInstance được truyền vào
-    //     if (ioInstance) {
-    //       ioInstance.emit("hardware-update", parsedData);
-    //       console.log(`📡 Đã phát 'hardware-update' lên UI qua ${name}`);
-    //     } else {
-    //       console.log("⚠️ Lỗi: Không nhận được biến Socket.io trong hàm TCP!");
-    //     }
-
-    //     socket.write(JSON.stringify({ status: "SUCCESS" }) + "\n");
-    //   } catch (err) {
-    //     console.log(`[TCP] ❌ Lỗi Data:`, err.message);
-    //   }
-    // });
+    if (ioInstance) {
+      ioInstance.emit("mcu-connection-status", {
+        connected: true,
+        mcu_id: clientIp,
+      });
+    }
 
     let dataBuffer = "";
 
-    // KHÔNG CÒN BẤT KỲ SỰ KIỆN socket.on("data") NÀO KHÁC NGOÀI CÁI NÀY:
     socket.on("data", (data) => {
-      // Cộng dồn nước vào thùng
       dataBuffer += data.toString();
-
-      // Chặt ra theo dấu ngắt dòng của anh Tài
       let packets = dataBuffer.split("\n");
-
-      // Quăng khúc cuối cùng (có thể chưa hoàn chỉnh) lại vào thùng chờ đợt sau
       dataBuffer = packets.pop();
 
-      // Đem các khúc đã nguyên vẹn đi xử lý
       for (let i = 0; i < packets.length; i++) {
-        let completeJsonString = packets[i].trim();
+        let completeString = packets[i].trim();
 
-        if (completeJsonString.length > 0) {
+        if (completeString.length > 0) {
+          console.log(`[TCP ${name} VĐK Gửi Lên] ->`, completeString);
+
           try {
-            let parsedData = JSON.parse(completeJsonString);
+            let parsedData = JSON.parse(completeString);
 
-            // Đẩy qua Web Giám sát (Nhớ sửa tên biến ioInstance cho đúng với code của bạn)
-            if (
-              typeof ioInstance !== "undefined" &&
-              parsedData.type === "BMS_DATA"
-            ) {
-              ioInstance.emit("hardware-update", parsedData);
+            if (ioInstance) {
+              // 1. DATA PIN
+              if (parsedData.type === "BMS_DATA") {
+                ioInstance.emit("hardware-update", parsedData);
+              }
+
+              // 2. BẮT CHẾ ĐỘ MODE
+              if (parsedData.mode) {
+                const mcuMode = parsedData.mode.toUpperCase();
+                if (mcuMode === "MANUAL" || mcuMode === "AUTO") {
+                  ioInstance.emit("mcu-physical-button", `MODE_${mcuMode}`);
+                }
+              }
+
+              // 3. BẮT NÚT BẤM
+              if (parsedData.btn_sync) {
+                ioInstance.emit("mcu-physical-button", parsedData.btn_sync);
+              }
+
+              // 4. BẮT TRẠNG THÁI STATUS
+              if (parsedData.status) {
+                const mcuStatus = parsedData.status.toUpperCase();
+
+                if (mcuStatus === "CHARGING" || mcuStatus === "DISCHARGING") {
+                  ioInstance.emit("mcu-ack-received", { status: mcuStatus });
+                } else if (
+                  mcuStatus === "DONE" ||
+                  mcuStatus === "STOP" ||
+                  mcuStatus === "IDLE"
+                ) {
+                  ioInstance.emit("mcu-status-idle");
+                }
+              }
             }
           } catch (e) {
-            console.log("[TCP] ❌ Lỗi Cú Pháp Gói Tin:", e.message);
+            console.log(
+              `[TCP ${name}] Bỏ qua gói tin không đúng chuẩn JSON: ${completeString}`,
+            );
           }
         }
       }
     });
 
-    socket.on("error", (err) =>
-      console.log(`[TCP ${name}] ⚠️ Lỗi:`, err.message),
-    );
-
-    // Khi user ngắt kết nối thì xóa khỏi mảng
-    socket.on("close", () => {
+    // GOM CHUNG LOGIC XỬ LÝ RỚT MẠNG VÀO 1 HÀM AN TOÀN
+    const handleDisconnect = () => {
       activeHardwareClients = activeHardwareClients.filter(
         (client) => client !== socket,
       );
-      console.log(`[TCP ${name}] 🔴 Ngắt kết nối.`);
 
-      // 2BẮN LOG LÊN WEB KHI MẠCH PHẦN CỨNG BỊ RÚT ĐIỆN / MẤT MẠNG
-      if (ioInstance) {
-        ioInstance.emit("system-log", `🔴 Mạch phần cứng ĐÃ NGẮT KẾT NỐI.`);
+      if (mcuSocket === socket) {
+        console.log(`[TCP ${name}] 🔴 Mạch ${clientIp} đã ngắt kết nối!`);
+        isMcuConnected = false;
+        mcuSocket = null;
+
+        if (ioInstance) {
+          // Bắn lệnh báo rớt mạng lên giao diện
+          ioInstance.emit("mcu-connection-status", {
+            connected: false,
+            mcu_id: clientIp,
+          });
+        }
       }
+    };
+
+    socket.on("error", (err) => {
+      console.log(
+        `[TCP ${name}] ⚠️ Lỗi đường truyền với mạch ${clientIp}:`,
+        err.message,
+      );
+      handleDisconnect();
+    });
+
+    socket.on("close", () => {
+      handleDisconnect();
     });
   });
 
@@ -453,25 +488,47 @@ function createTCPServer(name, port, ioInstance) {
 // ----- KHỞI TẠO APP ADMIN -----
 createTCPServer("Admin", CONFIG.PORT.ADMIN_APP, ioAdmin);
 
-// Lắng nghe lệnh từ Web (Socket.io) và bắn xuống phần cứng
+// ==========================================
+// LẮNG NGHE LỆNH TỪ WEB ĐỂ BẮN XUỐNG MẠCH
+// ==========================================
 ioAdmin.on("connection", (socket) => {
+  // Trạng thái cho tab Sạc/Xả ngay khi Web vừa load
+  socket.emit("mcu-connection-status", {
+    connected: isMcuConnected,
+    mcu_id: mcuSocket ? mcuSocket.remoteAddress : null,
+  });
+
+  // A. LỆNH ĐIỀU KHIỂN CHUNG (Chạy code của bạn)
   socket.on("send-command-to-hardware", (commandData) => {
     console.log("Nhận lệnh từ Web:", commandData);
-
-    // Đóng gói lệnh thành chuỗi JSON và thêm \n
     const commandString = JSON.stringify(commandData) + "\n";
-
-    // Bắn lệnh này tới TẤT CẢ các mạch phần cứng đang kết nối
     activeHardwareClients.forEach((hwClient) => {
       hwClient.write(commandString);
     });
+    console.log("Đã bắn lệnh xuống toàn bộ mạch!");
+  });
 
-    console.log("Đã bắn lệnh xuống mạch!");
+  // B. LỆNH DÀNH RIÊNG CHO TAB SẠC/XẢ (GG Power / Vinfast)
+  socket.on("manual-mcu-command", (payload) => {
+    console.log(
+      `[SERVER] Web yêu cầu Sạc/Xả: ${payload.action} trong ${payload.minutes} phút`,
+    );
+    if (isMcuConnected && mcuSocket) {
+      const commandString = JSON.stringify(payload) + "\n";
+      mcuSocket.write(commandString);
+    }
+  });
+
+  socket.on("server-ack-to-mcu", (data) => {
+    if (isMcuConnected && mcuSocket) {
+      const ackString = JSON.stringify({ status: "Web_OK" }) + "\n";
+      mcuSocket.write(ackString);
+    }
   });
 });
 
 // =============================================================================
-// ----------------------------- MONITOR SERVER ----------------------------------
+// ----------------------------- MONITOR SERVER --------------------------------
 // =============================================================================
 
 // ----- Khởi tạo Web Monitor (Giám sát) -----
