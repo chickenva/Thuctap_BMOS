@@ -7,8 +7,8 @@ const socketIo = require("socket.io").Server;
 const dgram = require("dgram"); // Thư viện cho UDP
 const net = require("net"); // Dùng cho App PC/Mobile (TCP Raw Socket)
 const { time } = require("console");
-const { SerialPort } = require("serialport");
-const { ReadlineParser } = require("@serialport/parser-readline");
+// const { SerialPort } = require("serialport");
+// const { ReadlineParser } = require("@serialport/parser-readline");
 
 // =============================================================================
 // ----------------------------- CẤU HÌNH HỆ THỐNG -----------------------------
@@ -367,6 +367,8 @@ serverAdmin.listen(CONFIG.PORT.ADMIN_WEB, "0.0.0.0", () => {
 let isMcuConnected = false;
 let mcuSocket = null;
 let activeHardwareClients = [];
+let lastMcuMode = null; // Tracking mode cũ để tránh emit liên tục
+let lastMcuStatus = null; // Tracking status cũ để tránh emit liên tục
 
 function createTCPServer(name, port, ioInstance) {
   const tcpServer = net.createServer((socket) => {
@@ -379,6 +381,10 @@ function createTCPServer(name, port, ioInstance) {
     isMcuConnected = true;
     mcuSocket = socket;
     activeHardwareClients.push(socket);
+
+    // RESET trạng thái mode/status khi có kết nối mới
+    lastMcuMode = null;
+    lastMcuStatus = null;
 
     if (ioInstance) {
       ioInstance.emit("mcu-connection-status", {
@@ -404,43 +410,74 @@ function createTCPServer(name, port, ioInstance) {
             let parsedData = JSON.parse(completeString);
 
             if (ioInstance) {
-              // 1. DATA PIN
+              // 1. DATA PIN - nhận cả dạng chuẩn và dạng mảng cell trực tiếp
               if (parsedData.type === "BMS_DATA") {
                 ioInstance.emit("hardware-update", parsedData);
+                console.log("[SERVER] ✅ Emit hardware-update dạng BMS_DATA");
+              } else if (Array.isArray(parsedData)) {
+                ioInstance.emit("hardware-update", {
+                  type: "BMS_DATA",
+                  cells: parsedData,
+                });
+                console.log(
+                  "[SERVER] ✅ Emit hardware-update dạng ARRAY cells",
+                );
               }
 
-              // 2. BẮT CHẾ ĐỘ MODE
+              // 2. BẮT BIẾN ĐỔI MODE (Anh Tài gộp chung vào JSON)
               if (parsedData.mode) {
                 const mcuMode = parsedData.mode.toUpperCase();
-                if (mcuMode === "MANUAL" || mcuMode === "AUTO") {
+                console.log(`[SERVER] VĐK gửi trạng thái MODE: ${mcuMode}`);
+                // CHỈ EMIT nếu MODE THỰC SỰ THAY ĐỔI - TRÁNH SPAM
+                if (
+                  mcuMode !== lastMcuMode &&
+                  (mcuMode === "MANUAL" || mcuMode === "AUTO")
+                ) {
+                  lastMcuMode = mcuMode;
                   ioInstance.emit("mcu-physical-button", `MODE_${mcuMode}`);
+                  console.log(
+                    `[SERVER] ✅ Emit MODE_${mcuMode} vì có thay đổi`,
+                  );
                 }
               }
 
-              // 3. BẮT NÚT BẤM
+              // 3. BẮT TÍN HIỆU NÚT BẤM CŨ (Nếu anh Tài có dùng)
               if (parsedData.btn_sync) {
                 ioInstance.emit("mcu-physical-button", parsedData.btn_sync);
               }
 
-              // 4. BẮT TRẠNG THÁI STATUS
+              // 4. BẮT TRẠNG THÁI STATUS (SẠC/XẢ/STOP/DONE)
               if (parsedData.status) {
                 const mcuStatus = parsedData.status.toUpperCase();
 
                 if (mcuStatus === "CHARGING" || mcuStatus === "DISCHARGING") {
-                  ioInstance.emit("mcu-ack-received", { status: mcuStatus });
-                } else if (
+                  // CHỈ EMIT nếu STATUS THỰC SỰ THAY ĐỔI - TRÁNH SPAM
+                  if (mcuStatus !== lastMcuStatus) {
+                    lastMcuStatus = mcuStatus;
+                    ioInstance.emit("mcu-ack-received", { status: mcuStatus });
+                    console.log(
+                      `[SERVER] ✅ Emit mcu-ack-received vì có thay đổi status`,
+                    );
+                  }
+                }
+                // Xử lý luôn chữ STOP của anh Tài gửi lên
+                else if (
                   mcuStatus === "DONE" ||
                   mcuStatus === "STOP" ||
                   mcuStatus === "IDLE"
                 ) {
-                  ioInstance.emit("mcu-status-idle");
+                  console.log(`[SERVER] VĐK báo DỪNG/HOÀN TẤT`);
+                  // CHỈ EMIT nếu không phải trạng thái IDLE cuối cùng
+                  if (lastMcuStatus !== "IDLE") {
+                    lastMcuStatus = "IDLE";
+                    ioInstance.emit("mcu-status-idle");
+                    console.log(`[SERVER] ✅ Emit mcu-status-idle`);
+                  }
                 }
               }
             }
           } catch (e) {
-            console.log(
-              `[TCP ${name}] Bỏ qua gói tin không đúng chuẩn JSON: ${completeString}`,
-            );
+            console.log(`[TCP ${name}] Bỏ qua gói tin không đúng chuẩn JSON.`);
           }
         }
       }
@@ -456,6 +493,10 @@ function createTCPServer(name, port, ioInstance) {
         console.log(`[TCP ${name}] 🔴 Mạch ${clientIp} đã ngắt kết nối!`);
         isMcuConnected = false;
         mcuSocket = null;
+
+        // RESET trạng thái mode/status để sẵn sàng kết nối lại
+        lastMcuMode = null;
+        lastMcuStatus = null;
 
         if (ioInstance) {
           // Bắn lệnh báo rớt mạng lên giao diện
@@ -500,12 +541,27 @@ ioAdmin.on("connection", (socket) => {
 
   // A. LỆNH ĐIỀU KHIỂN CHUNG (Chạy code của bạn)
   socket.on("send-command-to-hardware", (commandData) => {
-    console.log("Nhận lệnh từ Web:", commandData);
+    console.log("Nhận lệnh từ Web/Desktop:", commandData);
+
+    // Chuẩn hóa riêng cho lệnh điều khiển đèn LED_TEST
+    if (commandData && commandData.device === "LED_TEST") {
+      const rawSpeed = Number(commandData.speed_ms ?? 500);
+
+      commandData.speed_ms = Math.max(
+        0,
+        Math.min(1000, Number.isNaN(rawSpeed) ? 500 : rawSpeed),
+      );
+
+      commandData.action = commandData.action ? 1 : 0;
+    }
+
     const commandString = JSON.stringify(commandData) + "\n";
+
     activeHardwareClients.forEach((hwClient) => {
       hwClient.write(commandString);
     });
-    console.log("Đã bắn lệnh xuống toàn bộ mạch!");
+
+    console.log("[SERVER] Đã gửi xuống phần cứng:", commandString.trim());
   });
 
   // B. LỆNH DÀNH RIÊNG CHO TAB SẠC/XẢ (GG Power / Vinfast)

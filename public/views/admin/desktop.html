@@ -255,27 +255,115 @@
             border-radius: 8px;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
             margin-top: 20px;
-            display: flex;
-            align-items: center;
-            gap: 20px;
           "
         >
-          <span style="font-size: 16px; font-weight: bold"
-            >Trạng thái LED/Relay:</span
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              gap: 20px;
+              margin-bottom: 22px;
+            "
           >
+            <span style="font-size: 16px; font-weight: bold">
+              Trạng thái LED/Relay:
+            </span>
 
-          <span style="color: #7f8c8d; font-weight: bold">TẮT</span>
+            <span style="color: #7f8c8d; font-weight: bold">TẮT</span>
 
-          <label class="bmos-custom-switch">
+            <label class="bmos-custom-switch">
+              <input
+                type="checkbox"
+                id="ledSwitch"
+                onchange="dieuKhienDen(this.checked)"
+              />
+              <span class="bmos-custom-slider"></span>
+            </label>
+
+            <span style="color: #2ecc71; font-weight: bold">BẬT</span>
+
+            <span
+              id="led-current-status"
+              style="
+                margin-left: auto;
+                padding: 6px 12px;
+                border-radius: 999px;
+                background: #ecf0f1;
+                color: #7f8c8d;
+                font-size: 13px;
+                font-weight: bold;
+              "
+            >
+              Đang tắt
+            </span>
+          </div>
+
+          <div style="border-top: 1px solid #ecf0f1; padding-top: 18px">
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 10px;
+              "
+            >
+              <label
+                for="ledSpeedRange"
+                style="font-size: 15px; font-weight: bold; color: #34495e"
+              >
+                Tốc độ chớp đèn
+              </label>
+
+              <span
+                style="
+                  font-size: 15px;
+                  font-weight: bold;
+                  color: #e67e22;
+                  font-family: monospace;
+                "
+              >
+                <span id="ledSpeedValue">500</span> ms
+              </span>
+            </div>
+
             <input
-              type="checkbox"
-              id="ledSwitch"
-              onchange="dieuKhienDen(this.checked)"
+              type="range"
+              id="ledSpeedRange"
+              min="0"
+              max="1000"
+              value="500"
+              step="50"
+              oninput="capNhatTocDoDen(this.value)"
+              style="width: 100%; cursor: pointer"
             />
-            <span class="bmos-custom-slider"></span>
-          </label>
 
-          <span style="color: #2ecc71; font-weight: bold">BẬT</span>
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                color: #95a5a6;
+                font-size: 12px;
+                margin-top: 6px;
+              "
+            >
+              <span>0 ms</span>
+              <span>500 ms</span>
+              <span>1000 ms</span>
+            </div>
+
+            <p
+              style="
+                margin-top: 10px;
+                color: #7f8c8d;
+                font-size: 13px;
+                line-height: 1.5;
+              "
+            >
+              Khi LED đang bật, kéo thanh tốc độ tới đâu thì server sẽ gửi tốc
+              độ mới xuống phần cứng. Nếu LED đang tắt, tốc độ chỉ được lưu lại
+              và sẽ gửi khi bật.
+            </p>
+          </div>
         </div>
 
         <div style="margin-top: 25px">
