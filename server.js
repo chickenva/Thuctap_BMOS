@@ -656,19 +656,96 @@ serverBMS.on("error", (err) => {
   console.log(`❌ [BMS Server] (ERROR):\n${err.stack}`);
 });
 
-// Xử lý khi nhận dữ liệu từ PIN (BMS) gửi về
-serverBMS.on("message", (msg) => {
-  const rawMessage = msg.toString();
-  console.log(`🔋 [BMS UDP] Nhận: "${rawMessage}"`);
-  try {
-    const parsedData = rawMessage.startsWith("{")
-      ? JSON.parse(rawMessage)
-      : { message: rawMessage, time: new Date().toISOString() };
+serverBMS.on("message", (msg, rinfo) => {
+  const rawMessage = msg.toString().trim();
+  if (!rawMessage) {
+    console.log(
+      `⚠️ [BMS UDP] Bỏ qua gói rỗng từ ${rinfo.address}:${rinfo.port}`,
+    );
+    return;
+  }
 
-    saveToLog(parsedData);
-    ioMonitor.emit("update-data", parsedData);
+  console.log(
+    `🔋 [BMS UDP] Nhận từ ${rinfo.address}:${rinfo.port} -> "${rawMessage}"`,
+  );
+
+  try {
+    let parsedData = JSON.parse(rawMessage);
+
+    // Trường hợp anh Tài gửi thẳng mảng cell:
+    // [{"cell_id":1,"voltage":3.34,...}]
+    if (Array.isArray(parsedData)) {
+      parsedData = {
+        type: "BMS_DATA",
+        source: "UDP",
+        cells: parsedData,
+      };
+    }
+
+    // Trường hợp gửi object có cells nhưng quên type
+    // {"cells":[...]}
+    if (
+      parsedData &&
+      typeof parsedData === "object" &&
+      !Array.isArray(parsedData) &&
+      parsedData.cells &&
+      !parsedData.type
+    ) {
+      parsedData.type = "BMS_DATA";
+      parsedData.source = "UDP";
+    }
+
+    saveToLog({
+      ...parsedData,
+      protocol: "UDP",
+      udp_from: `${rinfo.address}:${rinfo.port}`,
+      received_at: new Date().toISOString(),
+    });
+
+    // UDP dữ liệu pin -> bắn lên tab Giám sát desktop/mobile
+    if (parsedData.type === "BMS_DATA") {
+      ioAdmin.emit("hardware-update", parsedData);
+      ioMonitor.emit("update-data", parsedData);
+
+      console.log("[UDP -> SOCKET] Emit hardware-update:", parsedData);
+      return;
+    }
+
+    // Nếu UDP gửi mode
+    if (parsedData.mode) {
+      const mcuMode = parsedData.mode.toUpperCase();
+
+      if (mcuMode === "MANUAL" || mcuMode === "AUTO") {
+        ioAdmin.emit("mcu-physical-button", `MODE_${mcuMode}`);
+        console.log(`[UDP -> SOCKET] Emit MODE_${mcuMode}`);
+      }
+    }
+
+    // Nếu UDP gửi nút vật lý
+    if (parsedData.btn_sync) {
+      ioAdmin.emit("mcu-physical-button", parsedData.btn_sync);
+      console.log(`[UDP -> SOCKET] Emit btn_sync: ${parsedData.btn_sync}`);
+    }
+
+    // Nếu UDP gửi trạng thái sạc/xả
+    if (parsedData.status) {
+      const mcuStatus = parsedData.status.toUpperCase();
+
+      if (mcuStatus === "CHARGING" || mcuStatus === "DISCHARGING") {
+        ioAdmin.emit("mcu-ack-received", { status: mcuStatus });
+        console.log(`[UDP -> SOCKET] Emit mcu-ack-received: ${mcuStatus}`);
+      } else if (
+        mcuStatus === "DONE" ||
+        mcuStatus === "STOP" ||
+        mcuStatus === "IDLE"
+      ) {
+        ioAdmin.emit("mcu-status-idle");
+        console.log("[UDP -> SOCKET] Emit mcu-status-idle");
+      }
+    }
   } catch (error) {
-    console.error(`❌ [BMS Error] ${error.message}`);
+    console.error(`❌ [BMS UDP Error] Không parse được JSON: ${error.message}`);
+    console.error(`❌ [BMS UDP Raw] ${rawMessage}`);
   }
 });
 

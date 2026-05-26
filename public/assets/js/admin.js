@@ -33,6 +33,18 @@ let lastConnectionStatusTime = 0;
 let lastStatusStopTime = 0;
 const DEBOUNCE_INTERVAL = 100;
 
+let selectedMonitorPack = 1;
+
+let monitor7PacksData = {
+  1: [],
+  2: [],
+  3: [],
+  4: [],
+  5: [],
+  6: [],
+  7: [],
+};
+
 // ============================================================
 // ----------------------- MODAL SYSTEM ------------------------
 // ============================================================
@@ -260,6 +272,7 @@ async function switchDesktopTab(tabId) {
     "tab-list": "btn-tab-list",
     "tab-add": "btn-tab-add",
     "tab-monitor": "btn-tab-monitor",
+    "tab-monitor-7": "btn-tab-monitor-7",
     "tab-control": "btn-tab-control",
     "tab-charge-test": "btn-tab-charge-test",
   };
@@ -440,76 +453,7 @@ async function deleteUser(id) {
 }
 
 // ============================================================
-// --------------------- TAB ĐIỀU KHIỂN ĐÈN -------------------
-// ============================================================
-function getSafeLedSpeed(value) {
-  const speed = Number(value);
-
-  if (Number.isNaN(speed)) return 500;
-  if (speed < 0) return 0;
-  if (speed > 1000) return 1000;
-
-  return speed;
-}
-
-function updateLedStatusBadge() {
-  const statusEl = document.getElementById("led-current-status");
-  const valueEl = document.getElementById("ledSpeedValue");
-
-  if (valueEl) valueEl.innerText = ledSpeedMs;
-
-  if (!statusEl) return;
-
-  if (isLedOn) {
-    statusEl.innerText = `Đang bật - ${ledSpeedMs} ms`;
-    statusEl.style.background = "#eafaf1";
-    statusEl.style.color = "#27ae60";
-  } else {
-    statusEl.innerText = "Đang tắt";
-    statusEl.style.background = "#ecf0f1";
-    statusEl.style.color = "#7f8c8d";
-  }
-}
-
-function guiLenhDen(action) {
-  const payload = {
-    device: "LED_TEST",
-    action: action ? 1 : 0,
-    speed_ms: ledSpeedMs,
-  };
-
-  socket.emit("send-command-to-hardware", payload);
-
-  ghiLog(
-    `📤 Gửi LED_TEST: action=${payload.action}, speed_ms=${payload.speed_ms}`,
-    action ? "#2ecc71" : "#f39c12",
-    "control-log",
-  );
-
-  console.log("[DESKTOP] Gửi LED_TEST:", payload);
-}
-
-function dieuKhienDen(isTurnOn) {
-  isLedOn = Boolean(isTurnOn);
-  updateLedStatusBadge();
-  guiLenhDen(isLedOn);
-}
-
-function capNhatTocDoDen(value) {
-  ledSpeedMs = getSafeLedSpeed(value);
-  updateLedStatusBadge();
-
-  if (!isLedOn) return;
-
-  clearTimeout(ledSpeedSendTimer);
-
-  ledSpeedSendTimer = setTimeout(() => {
-    guiLenhDen(true);
-  }, 80);
-}
-
-// ============================================================
-// ---------------------- TAB GIÁM SÁT PIN ---------------------
+// ---------------------- TAB GIÁM SÁT PIN 1 KHỐI VÀ 7 KHỐI ---------------------
 // ============================================================
 function initMonitorTable() {
   const tbody = document.getElementById("monitor-tbody");
@@ -543,6 +487,100 @@ function initMonitorTable() {
   console.log("[MONITOR] Đã khởi tạo bảng 16 cell");
 }
 
+function createDefaultPackCells() {
+  const cells = [];
+
+  for (let i = 1; i <= 16; i++) {
+    cells.push({
+      cell_id: i,
+      time: "--:--:--",
+      voltage: null,
+      current: null,
+      temperature: null,
+      noi_tro: null,
+      dien_tro_tx: null,
+      bypass: null,
+      cb_chu_dong: null,
+      cb_thu_dong: null,
+      cb_tinh: null,
+      cb_dien_ap: null,
+    });
+  }
+
+  return cells;
+}
+
+function initMonitor7Data() {
+  for (let packId = 1; packId <= 7; packId++) {
+    if (!monitor7PacksData[packId] || monitor7PacksData[packId].length === 0) {
+      monitor7PacksData[packId] = createDefaultPackCells();
+    }
+  }
+}
+
+function initMonitor7Table() {
+  initMonitor7Data();
+  renderMonitor7Table(selectedMonitorPack);
+}
+
+function renderMonitor7Table(packId) {
+  const tbody = document.getElementById("monitor-7-tbody");
+  const label = document.getElementById("current-pack-label");
+
+  if (!tbody) return;
+
+  const cells = monitor7PacksData[packId] || createDefaultPackCells();
+
+  tbody.innerHTML = "";
+
+  cells.forEach((cell) => {
+    tbody.innerHTML += `
+      <tr id="row-pack-${packId}-cell-${cell.cell_id}" style="border-bottom:1px solid #eee;">
+        <td id="pack-${packId}-cell-${cell.cell_id}-time" style="padding:8px;">
+          ${cell.time || "--:--:--"}
+        </td>
+        <td style="padding:8px; font-weight:bold; color:#2980b9;">
+          Cell ${cell.cell_id}
+        </td>
+        <td id="pack-${packId}-cell-${cell.cell_id}-voltage" style="padding:8px;">
+          ${formatMonitorValue(cell.voltage, " V")}
+        </td>
+        <td id="pack-${packId}-cell-${cell.cell_id}-current" style="padding:8px;">
+          ${formatMonitorValue(cell.current, " A")}
+        </td>
+        <td id="pack-${packId}-cell-${cell.cell_id}-temp" style="padding:8px;">
+          ${formatMonitorValue(cell.temperature, " °C")}
+        </td>
+        <td id="pack-${packId}-cell-${cell.cell_id}-ir" style="padding:8px;">
+          ${formatMonitorValue(cell.noi_tro, " mΩ")}
+        </td>
+        <td id="pack-${packId}-cell-${cell.cell_id}-cr" style="padding:8px;">
+          ${formatMonitorValue(cell.dien_tro_tx, " mΩ")}
+        </td>
+        <td id="pack-${packId}-cell-${cell.cell_id}-bypass" style="padding:8px;">
+          ${formatMonitorStatus(cell.bypass)}
+        </td>
+        <td id="pack-${packId}-cell-${cell.cell_id}-cb-chudong" style="padding:8px;">
+          ${formatMonitorStatus(cell.cb_chu_dong)}
+        </td>
+        <td id="pack-${packId}-cell-${cell.cell_id}-cb-thudong" style="padding:8px;">
+          ${formatMonitorStatus(cell.cb_thu_dong)}
+        </td>
+        <td id="pack-${packId}-cell-${cell.cell_id}-cb-tinh" style="padding:8px;">
+          ${formatMonitorStatus(cell.cb_tinh)}
+        </td>
+        <td id="pack-${packId}-cell-${cell.cell_id}-cb-dienap" style="padding:8px;">
+          ${formatMonitorStatus(cell.cb_dien_ap)}
+        </td>
+      </tr>
+    `;
+  });
+
+  if (label) {
+    label.innerText = `Khối ${packId}`;
+  }
+}
+
 function renderStatusBadge(value) {
   if (value === 1 || value === "ON" || value === true) {
     return `<span style="background:#2ecc71; color:white; padding:3px 8px; border-radius:12px; font-size:11px; font-weight:bold;">BẬT</span>`;
@@ -553,6 +591,19 @@ function renderStatusBadge(value) {
   }
 
   return null;
+}
+
+function formatMonitorValue(value, unit = "") {
+  if (value === undefined || value === null || value === "") {
+    return "--";
+  }
+
+  return `${value}${unit}`;
+}
+
+function formatMonitorStatus(value) {
+  const badge = renderStatusBadge(value);
+  return badge || "--";
 }
 
 function updateMonitorCell(cellData) {
@@ -620,12 +671,191 @@ function handleHardwareUpdate(payload) {
     return;
   }
 
+  const packId = getPayloadPackId(payload);
+  const updatedCellIds = [];
+
   if (!document.getElementById("cell-1-time")) {
-    console.warn("[DESKTOP] Bảng chưa khởi tạo, tạo lại bảng...");
+    console.warn("[DESKTOP] Bảng 1 khối chưa khởi tạo, tạo lại...");
     initMonitorTable();
   }
 
-  danhSachCell.forEach(updateMonitorCell);
+  if (!document.getElementById("monitor-7-tbody")) {
+    console.warn("[DESKTOP] Không tìm thấy bảng 7 khối trong HTML");
+  } else {
+    initMonitor7Data();
+  }
+
+  danhSachCell.forEach((cellData) => {
+    const cellId = Number(cellData.cell_id);
+
+    updateMonitorCell(cellData);
+    updateMonitor7Cell(packId, cellData);
+
+    if (cellId >= 1 && cellId <= 16) {
+      updatedCellIds.push(cellId);
+    }
+  });
+
+  if (selectedMonitorPack === packId) {
+    renderMonitor7Table(packId);
+
+    updatedCellIds.forEach((cellId) => {
+      flashMonitor7Row(packId, cellId);
+    });
+  } else {
+    flashMonitorPackButton(packId);
+  }
+}
+
+// Chuyển đổi giữa các khối giám sát 1-7
+function switchMonitorPack(packId) {
+  selectedMonitorPack = Number(packId) || 1;
+
+  document.querySelectorAll(".pack-btn").forEach((btn) => {
+    btn.classList.remove("active");
+  });
+
+  const activeBtn = document.getElementById(`pack-btn-${selectedMonitorPack}`);
+  if (activeBtn) {
+    activeBtn.classList.add("active");
+  }
+
+  renderMonitor7Table(selectedMonitorPack);
+}
+
+function getPayloadPackId(payload) {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return 1;
+  }
+
+  const rawPackId = payload.pack_id ?? payload.packId ?? payload.pack;
+
+  const packId = Number(rawPackId || 1);
+
+  if (!packId || packId < 1 || packId > 7) {
+    return 1;
+  }
+
+  return packId;
+}
+
+function updateMonitor7Cell(packId, cellData) {
+  initMonitor7Data();
+
+  const cellId = Number(cellData.cell_id);
+
+  if (!cellId || cellId < 1 || cellId > 16) return;
+
+  const oldCell = monitor7PacksData[packId][cellId - 1] || {};
+
+  monitor7PacksData[packId][cellId - 1] = {
+    ...oldCell,
+    ...cellData,
+    cell_id: cellId,
+    time: getCurrentTime(),
+  };
+}
+
+// Hiệu ứng flash khi có cell được cập nhật trong tab 7 khối
+function flashMonitor7Row(packId, cellId) {
+  const row = document.getElementById(`row-pack-${packId}-cell-${cellId}`);
+
+  if (!row) return;
+
+  row.style.transition = "none";
+  row.style.backgroundColor = "#e8f8f5";
+
+  setTimeout(() => {
+    row.style.transition = "background-color 0.8s ease";
+    row.style.backgroundColor = "transparent";
+  }, 100);
+}
+
+// Hiệu ứng flash nút khi có cell được cập nhật nhưng không phải ở khối đang xem (tab 7 khối)
+function flashMonitorPackButton(packId) {
+  const btn = document.getElementById(`pack-btn-${packId}`);
+
+  if (!btn) return;
+
+  const oldBoxShadow = btn.style.boxShadow;
+  const oldTransform = btn.style.transform;
+
+  btn.style.boxShadow = "0 0 0 4px rgba(46, 204, 113, 0.35)";
+  btn.style.transform = "scale(1.05)";
+
+  setTimeout(() => {
+    btn.style.boxShadow = oldBoxShadow;
+    btn.style.transform = oldTransform;
+  }, 500);
+}
+
+// ============================================================
+// --------------------- TAB ĐIỀU KHIỂN ĐÈN -------------------
+// ============================================================
+function getSafeLedSpeed(value) {
+  const speed = Number(value);
+
+  if (Number.isNaN(speed)) return 500;
+  if (speed < 0) return 0;
+  if (speed > 1000) return 1000;
+
+  return speed;
+}
+
+function updateLedStatusBadge() {
+  const statusEl = document.getElementById("led-current-status");
+  const valueEl = document.getElementById("ledSpeedValue");
+
+  if (valueEl) valueEl.innerText = ledSpeedMs;
+
+  if (!statusEl) return;
+
+  if (isLedOn) {
+    statusEl.innerText = `Đang bật - ${ledSpeedMs} ms`;
+    statusEl.style.background = "#eafaf1";
+    statusEl.style.color = "#27ae60";
+  } else {
+    statusEl.innerText = "Đang tắt";
+    statusEl.style.background = "#ecf0f1";
+    statusEl.style.color = "#7f8c8d";
+  }
+}
+
+function guiLenhDen(action) {
+  const payload = {
+    device: "LED_TEST",
+    action: action ? 1 : 0,
+    speed_ms: ledSpeedMs,
+  };
+
+  socket.emit("send-command-to-hardware", payload);
+
+  ghiLog(
+    `📤 Gửi LED_TEST: action=${payload.action}, speed_ms=${payload.speed_ms}`,
+    action ? "#2ecc71" : "#f39c12",
+    "control-log",
+  );
+
+  console.log("[DESKTOP] Gửi LED_TEST:", payload);
+}
+
+function dieuKhienDen(isTurnOn) {
+  isLedOn = Boolean(isTurnOn);
+  updateLedStatusBadge();
+  guiLenhDen(isLedOn);
+}
+
+function capNhatTocDoDen(value) {
+  ledSpeedMs = getSafeLedSpeed(value);
+  updateLedStatusBadge();
+
+  if (!isLedOn) return;
+
+  clearTimeout(ledSpeedSendTimer);
+
+  ledSpeedSendTimer = setTimeout(() => {
+    guiLenhDen(true);
+  }, 80);
 }
 
 // ============================================================
@@ -1054,5 +1284,6 @@ if (typeof socket !== "undefined") {
 // ============================================================
 window.addEventListener("load", () => {
   initMonitorTable();
+  initMonitor7Table();
   updateLedStatusBadge();
 });

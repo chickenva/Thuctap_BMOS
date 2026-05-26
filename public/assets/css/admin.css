@@ -600,3 +600,24 @@ tbody tr:hover {
 .bmos-custom-switch input:checked + .bmos-custom-slider:before {
   transform: translateX(26px);
 }
+
+.pack-btn {
+  padding: 9px 16px;
+  border: 1px solid #dcdde1;
+  background: #f5f6fa;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: bold;
+  color: #34495e;
+  transition: 0.2s;
+}
+
+.pack-btn:hover {
+  background: #ecf0f1;
+}
+
+.pack-btn.active {
+  background: #27ae60;
+  color: white;
+  border-color: #27ae60;
+}
